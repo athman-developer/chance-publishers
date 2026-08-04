@@ -1,0 +1,6 @@
+---
+import InnerPage from '../../layouts/InnerPage.astro';import BookCatalog from '../../components/BookCatalog.astro';import {categories} from '../../data/books.js';
+export function getStaticPaths(){return categories.map(category=>({params:{slug:category.slug},props:{category}}))}
+const {category}=Astro.props;
+---
+<InnerPage title={category.name}><BookCatalog category={category.short} heading={category.name} intro={category.description}/></InnerPage>

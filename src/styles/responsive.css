@@ -1,0 +1,291 @@
+/* Responsive art direction for Chance Publishers.
+   The phone layout keeps the designed, landscape character of the desktop site
+   while allowing forms, long explanations and package quotations to stack. */
+
+@media (max-width: 900px) {
+  .section { padding: 4.25rem 1.4rem; }
+
+  /* Keep all major image-led banners as balanced two-part compositions. */
+  .author-hero,
+  .launch-hero,
+  .contact-hero,
+  .guide-hero,
+  .shop-hero,
+  .catalog-hero {
+    grid-template-columns: 1.05fr .95fr !important;
+    min-height: 500px !important;
+    padding: 3.25rem 1.4rem !important;
+    gap: 1.5rem !important;
+  }
+
+  .author-hero .hero-image,
+  .launch-hero .hero-image,
+  .contact-portrait,
+  .hero-showcase,
+  .shop-hero .hero-books,
+  .catalog-hero .landscape-showcase { min-height: 350px !important; }
+
+  .author-hero .hero-copy h1,
+  .launch-hero .hero-copy h1 { font-size: clamp(2.5rem, 6vw, 4rem) !important; }
+
+  .contact-hero h1,
+  .guide-hero .hero-copy h1,
+  .shop-hero h1,
+  .catalog-hero .catalog-copy h1 { font-size: clamp(3rem, 7vw, 5rem) !important; }
+
+  /* Swipeable landscape rows retain visual variety without a very long page. */
+  .episode-grid,
+  .benefit-grid {
+    display: flex !important;
+    gap: 1rem !important;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding: .25rem 1.4rem 1.1rem;
+    margin-inline: -1.4rem;
+  }
+  .episode-grid::-webkit-scrollbar,
+  .benefit-grid::-webkit-scrollbar { display: none; }
+  .episode-grid > *,
+  .benefit-grid > * { flex: 0 0 min(72vw, 360px); scroll-snap-align: start; }
+
+  .footer-grid { grid-template-columns: 1fr 1fr !important; gap: 2.2rem 1.4rem !important; }
+  .footer-grid > div:first-child,
+  .footer-submit { grid-column: 1 / -1 !important; }
+}
+
+@media (max-width: 600px) {
+  :root { --mobile-gutter: 1rem; }
+  body { overflow-x: hidden; }
+  .section { padding: 3.35rem var(--mobile-gutter) !important; }
+
+  /* Homepage slideshow: same left/right visual language, scaled into a compact banner. */
+  .hero-slider .hero {
+    min-height: 430px !important;
+    padding: 1.25rem var(--mobile-gutter) 3.1rem !important;
+    display: grid !important;
+    grid-template-columns: 1.12fr .88fr !important;
+    align-items: center !important;
+    gap: .65rem !important;
+    background: linear-gradient(120deg, var(--surface) 0 58%, color-mix(in srgb,var(--soft-green) 80%,var(--surface)) 58%) !important;
+  }
+  .hero-slider .hero.reverse .hero-visual { order: initial !important; }
+  .hero-slider .hero-copy { min-width: 0; }
+  .hero-slider .eyebrow { margin-bottom: .55rem !important; padding: .38rem .48rem !important; font-size: .45rem !important; line-height: 1.25; }
+  .hero-slider .hero h1 { margin: 0 0 .65rem !important; font-size: clamp(1.65rem, 8vw, 2.15rem) !important; line-height: .93 !important; letter-spacing: -.045em !important; }
+  .hero-slider .hero-copy > p { margin: 0; font-size: .63rem !important; line-height: 1.48 !important; }
+  .hero-slider .hero-buttons { margin: .8rem 0 0 !important; display: grid !important; gap: .38rem !important; }
+  .hero-slider .hero-buttons .btn { width: 100%; min-height: 0; padding: .58rem .55rem !important; font-size: .52rem !important; border-radius: 8px !important; text-align: center; }
+  .hero-slider .reader-love { display: none !important; }
+  .hero-slider .hero-visual { width: 100% !important; min-height: 230px !important; margin: 0 !important; }
+  .hero-slider .main-photo { inset: 7% 0 7% 7% !important; border-width: 4px !important; border-radius: 15px !important; }
+  .hero-slider .circle-one { width: 115px !important; height: 115px !important; right: -12% !important; top: 4% !important; }
+  .hero-slider .circle-two { width: 92px !important; height: 92px !important; }
+  .hero-slider .floating-book { width: 46px !important; padding: 3px !important; }
+  .hero-slider .book-a { left: -5% !important; top: 1% !important; }
+  .hero-slider .book-b { right: -4% !important; bottom: 4% !important; width: 44px !important; }
+  .hero-slider .floating-book.book-c,
+  .hero-slider .happy-note,
+  .hero-slider .grow-sticker { display: none !important; }
+  .hero-slider .slider-controls { bottom: .45rem !important; padding: .25rem .38rem !important; }
+  .hero-slider .slider-controls > button { width: 25px !important; height: 25px !important; }
+
+  /* Homepage visual sections. */
+  .about-chance { gap: 2rem !important; }
+  .about-collage { min-height: 0 !important; grid-template-rows: 225px 108px !important; padding: .55rem !important; gap: .5rem !important; border-radius: 19px !important; }
+  .about-collage figure { border-radius: 12px !important; }
+  .about-copy h2,
+  .roadmap-intro h2,
+  .section-title h2,
+  .author-cta-rich h2,
+  .launch-section-rich .launch-copy h2,
+  .packages-heading h2 { font-size: clamp(2.15rem, 10.5vw, 3.15rem) !important; }
+  .about-copy > p,
+  .roadmap-intro > p,
+  .author-copy > p,
+  .launch-copy > p { font-size: .82rem; line-height: 1.65 !important; }
+  .about-services { grid-template-columns: 1fr 1fr !important; }
+  .about-services span { font-size: .62rem !important; }
+  .publishing-roadmap { gap: 2rem !important; }
+  .roadmap-list > a { padding: .72rem !important; gap: .6rem !important; }
+  .roadmap-list > a > span { width: 36px !important; height: 36px !important; }
+
+  .picks-layout { display: block !important; }
+  .feature-pick { display: grid !important; grid-template-columns: .9fr 1.1fr !important; min-height: 230px; margin-bottom: 1.4rem !important; }
+  .feature-pick > img { width: 100%; height: 100% !important; object-fit: cover; }
+  .feature-pick > div { padding: 1rem !important; }
+  .feature-pick h3 { font-size: 1.25rem !important; }
+  .feature-pick p { font-size: .62rem !important; }
+  .top-picks .product-grid {
+    display: flex !important;
+    gap: .8rem !important;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    margin-inline: -1rem;
+    padding: .2rem 1rem 1.1rem;
+  }
+  .top-picks .product-grid::-webkit-scrollbar { display: none; }
+  .top-picks .product-card { flex: 0 0 142px; scroll-snap-align: start; }
+  .top-picks .product-card h3 { min-height: 2.45em; font-size: .76rem !important; }
+
+  .author-cta-rich { min-height: 0 !important; gap: 1.5rem !important; }
+  .author-steps { gap: .35rem !important; }
+  .author-steps span { padding: .45rem .55rem !important; font-size: .58rem !important; }
+  .author-visual { min-height: 285px !important; margin-top: .8rem !important; }
+  .author-visual-heading { padding: .58rem !important; }
+  .author-visual-heading small { font-size: .42rem !important; }
+  .author-visual-heading b { font-size: .57rem !important; }
+  .author-quote { padding: .55rem .65rem !important; }
+  .author-seal { width: 75px !important; height: 75px !important; }
+  .author-note-bottom { max-width: 130px; }
+
+  .launch-stats { grid-template-columns: repeat(3,1fr) !important; gap: .35rem !important; }
+  .launch-stats span { padding: .55rem !important; }
+  .launch-gallery { min-height: 250px; grid-template-rows: 155px 90px !important; gap: .45rem !important; }
+  .package-grid { grid-template-columns: 1fr !important; }
+  .package-card { max-width: 430px; width: 100%; margin-inline: auto; }
+  .packages-compact .package-card ul { grid-template-columns: 1fr 1fr !important; }
+  .package-notes { grid-template-columns: 1fr !important; }
+  .podcast-strip { min-height: 520px; padding: 2.4rem 1rem !important; }
+
+  /* Compact landscape banners on all inner pages. */
+  .author-hero,
+  .launch-hero,
+  .contact-hero,
+  .guide-hero,
+  .shop-hero,
+  .catalog-hero {
+    min-height: 350px !important;
+    padding: 1.35rem var(--mobile-gutter) !important;
+    grid-template-columns: 1.08fr .92fr !important;
+    gap: .75rem !important;
+    align-items: center !important;
+  }
+  .author-hero .hero-copy small,
+  .launch-hero .hero-copy small,
+  .contact-hero-copy small,
+  .guide-hero .hero-copy small,
+  .shop-hero small,
+  .catalog-copy small { font-size: .42rem !important; letter-spacing: .09em !important; }
+  .author-hero .hero-copy h1,
+  .launch-hero .hero-copy h1,
+  .contact-hero h1,
+  .guide-hero .hero-copy h1,
+  .shop-hero h1,
+  .catalog-hero .catalog-copy h1 {
+    margin: .45rem 0 .65rem !important;
+    font-size: clamp(1.45rem, 7vw, 2rem) !important;
+    line-height: .94 !important;
+    letter-spacing: -.045em !important;
+  }
+  .author-hero .hero-copy h1 span,
+  .launch-hero .hero-copy h1 span { white-space: normal !important; }
+  .author-hero .hero-copy > p,
+  .launch-hero .hero-copy > p,
+  .contact-hero-copy > p,
+  .guide-hero .hero-copy > p,
+  .shop-hero p,
+  .catalog-copy p { font-size: .58rem !important; line-height: 1.45 !important; }
+  .author-hero .actions,
+  .launch-hero .actions,
+  .contact-hero .hero-actions,
+  .guide-hero .hero-actions,
+  .catalog-hero .hero-actions { margin-top: .75rem !important; display: grid !important; gap: .35rem !important; }
+  .author-hero .actions a,
+  .launch-hero .actions a,
+  .contact-hero .hero-actions a,
+  .guide-hero .hero-actions a,
+  .catalog-hero .hero-actions a,
+  .shop-hero > div > a { padding: .54rem .5rem !important; border-radius: 7px !important; font-size: .49rem !important; text-align: center; }
+
+  .author-hero .hero-image,
+  .launch-hero .hero-image,
+  .contact-portrait,
+  .guide-hero .hero-showcase,
+  .shop-hero .hero-books,
+  .catalog-hero .landscape-showcase { min-height: 205px !important; width: 100% !important; margin: 0 !important; }
+  .author-hero .hero-image img,
+  .launch-hero .hero-image img { border-width: 4px !important; border-radius: 14px !important; }
+  .author-hero .hero-image b,
+  .launch-hero .hero-image b { right: -.2rem !important; bottom: .35rem !important; padding: .45rem !important; border-radius: 7px !important; font-size: .48rem !important; }
+  .contact-portrait > img { inset: 0 !important; width: 100% !important; border-width: 4px !important; border-radius: 14px !important; }
+  .contact-portrait .portrait-note { width: 62px !important; height: 62px !important; right: -.2rem !important; bottom: -.25rem !important; }
+  .contact-portrait .portrait-note span { display: none; }
+  .guide-hero .hero-showcase { padding: .42rem !important; border-radius: 12px !important; }
+  .guide-hero .hero-showcase > span { font-size: .38rem !important; }
+  .guide-hero .hero-showcase > p { display: none; }
+  .guide-hero .mockup-slider { margin-top: .35rem !important; border-width: 3px !important; border-radius: 8px !important; }
+  .guide-hero .slider-controls { margin-top: .35rem !important; gap: .35rem !important; }
+  .guide-hero .slider-controls > button { width: 24px !important; height: 24px !important; }
+  .guide-hero .slider-dots button { width: 5px !important; height: 5px !important; }
+  .guide-hero .slider-dots button.active { width: 14px !important; }
+
+  .catalog-hero .landscape-card { border-width: 3px !important; border-radius: 8px !important; }
+  .catalog-hero .landscape-card figcaption { left: .3rem !important; right: .3rem !important; bottom: .3rem !important; padding: .35rem !important; border-radius: 5px !important; }
+  .catalog-hero .landscape-card figcaption span { display: none; }
+  .catalog-hero .landscape-card figcaption b { font-size: .42rem !important; }
+  .shop-hero .hero-books img { border-width: 3px !important; border-radius: 6px !important; }
+
+  /* Studio remains a true landscape visual banner. */
+  .podcast-hero { min-height: 360px !important; }
+  .podcast-hero > div { width: min(88%, 520px) !important; }
+  .podcast-hero h1 { font-size: clamp(2.15rem, 10vw, 3rem) !important; }
+  .podcast-hero p { font-size: .75rem !important; line-height: 1.55 !important; }
+  .podcast-hero a { padding: .7rem .85rem !important; font-size: .65rem !important; }
+
+  /* Cards that benefit from landscape browsing become swipe rows. */
+  .episodes { padding: 3.35rem 0 !important; }
+  .episode-head { padding-inline: 1rem; }
+  .episode-grid,
+  .benefit-grid {
+    padding-inline: 1rem !important;
+    margin-inline: 0 !important;
+  }
+  .episode-grid > *,
+  .benefit-grid > * { flex-basis: 78vw !important; }
+
+  /* Long explanations, quotations, forms and package details read top-to-bottom. */
+  .author-story,
+  .launch-intro,
+  .ready,
+  .printing,
+  .identifiers,
+  .message-section,
+  .visit-section { grid-template-columns: 1fr !important; gap: 2rem !important; }
+  .value-grid,
+  .journey-line,
+  .steps,
+  .cost-grid,
+  .contact-options,
+  .contact-form { grid-template-columns: 1fr !important; }
+  .story-collage { min-height: 320px !important; }
+  .print-visual { min-height: 430px !important; }
+  .checklist { left: .6rem !important; right: .6rem !important; bottom: .6rem !important; }
+  .checklist ol { columns: 1 !important; }
+  .contact-options { margin-top: 0 !important; padding: 2.4rem 1rem 3.4rem !important; }
+  .contact-form label { grid-column: 1 / -1 !important; }
+
+  .library-grid,
+  .shop-wrap .product-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+  .library-book h3 { font-size: .75rem !important; }
+  .shop-wrap { padding: 2.5rem 1rem !important; }
+  .shop-wrap .filters { padding: 1rem !important; }
+  .shop-wrap .product { min-width: 0; padding: .58rem !important; }
+
+  footer { padding: 3rem 1rem 1.25rem !important; }
+  .footer-grid { grid-template-columns: 1fr !important; gap: 2rem !important; }
+  .footer-grid > * { grid-column: auto !important; }
+  .footer-bottom { display: grid !important; justify-items: center; gap: .35rem; text-align: center; }
+}
+
+@media (max-width: 370px) {
+  .hero-slider .hero { grid-template-columns: 1.08fr .92fr !important; }
+  .hero-slider .hero h1 { font-size: 1.52rem !important; }
+  .author-hero,
+  .launch-hero,
+  .contact-hero,
+  .guide-hero,
+  .shop-hero,
+  .catalog-hero { grid-template-columns: 1.05fr .95fr !important; }
+}

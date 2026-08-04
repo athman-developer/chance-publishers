@@ -1,0 +1,50 @@
+---
+import {books,categories} from '../data/books.js';
+const {heading='All books',intro='Explore the complete Chance Publishers collection.',mode='all',category=''}=Astro.props;
+const preferred=['Pieces of Me','Not Expired','Asolic Principle and Its Applications'];
+const heroBooks=preferred.map(title=>books.find(book=>book.title===title)).filter(Boolean);
+const initialFilter=category||mode;
+---
+<section class="catalog-hero">
+  <div class="catalog-copy"><small>THE CHANCE PUBLISHERS LIBRARY</small><h1>{heading}</h1><p>{intro}</p><div class="hero-actions"><a href="#catalogue">Browse published books ↓</a><a class="shop-link" href="/shop">Visit the shop →</a></div></div>
+  <div class="landscape-showcase" aria-label="Featured Chance Publishers book mock-ups">
+    {heroBooks.map((book,index)=><figure class={`landscape-card card-${index+1}`}><img src={book.mockup} alt={`${book.title} book mock-up`} /><figcaption><span>Published by Chance</span><b>{book.title}</b></figcaption></figure>)}
+  </div>
+</section>
+
+<section class="library" id="catalogue" data-book-library data-initial-filter={initialFilter}>
+  <header><div><small>BOOKS WE HAVE PUBLISHED</small><h2>Ideas made tangible.</h2></div><p>Explore stories, research, learning and lived experience shaped into books with editorial care. Prices and purchasing are kept in our dedicated Shop.</p></header>
+  <nav class="category-tabs" aria-label="Filter published books"><button class={!category&&mode==='all'?'active':''} type="button" data-filter="all">All books</button><button class={mode==='new'?'active':''} type="button" data-filter="new">New releases</button><button class={mode==='top'?'active':''} type="button" data-filter="top">Top picks</button>{categories.map(item=><button class={category===item.short?'active':''} type="button" data-filter={item.short}>{item.name}</button>)}</nav>
+  <p class="filter-status" aria-live="polite"><b data-result-count>{books.length}</b> published books shown</p>
+  <div class="library-grid">{books.map(book=><article class="library-book" data-book-card data-category={book.category} data-new={book.badge==='New'?'true':'false'} data-top={book.badge==='Top Pick'?'true':'false'}><a href="/shop"><div class="cover"><img src={book.image} alt={`${book.title} cover`} loading="lazy"/><span>{book.badge}</span><i>Find in shop →</i></div><small>{book.category}</small><h3>{book.title}</h3><p>{book.author}</p></a></article>)}</div>
+  <div class="library-cta"><div><small>READY TO CHOOSE YOUR NEXT READ?</small><h2>Browse prices, formats and ordering details.</h2></div><a href="/shop">Open the Chance bookshop →</a></div>
+</section>
+
+<style>
+  .catalog-hero{min-height:590px;padding:clamp(4rem,7vw,7rem) clamp(1rem,6vw,7rem);display:grid;grid-template-columns:.82fr 1.18fr;align-items:center;gap:clamp(2rem,6vw,6rem);overflow:hidden;background:radial-gradient(circle at 87% 10%,rgba(255,210,28,.22),transparent 24%),linear-gradient(135deg,#062b1c,#0b7442);color:#fff}.catalog-copy small,.library header small,.library-cta small{color:var(--yellow);font-weight:900;letter-spacing:.14em}.catalog-copy h1{max-width:720px;margin:.7rem 0 1rem;font-family:var(--display);font-size:clamp(3.8rem,7vw,7rem);line-height:.9;letter-spacing:-.06em}.catalog-copy p{max-width:620px;color:rgba(255,255,255,.78);line-height:1.8}.hero-actions{margin-top:1.7rem;display:flex;gap:.8rem;flex-wrap:wrap}.hero-actions a{padding:.95rem 1.1rem;border:1px solid rgba(255,255,255,.28);border-radius:12px;color:#fff;text-decoration:none;font-weight:900}.hero-actions a:first-child{border-color:var(--yellow);background:var(--yellow);color:#173020;box-shadow:0 6px 0 #b88e00}
+  .landscape-showcase{position:relative;min-height:440px}.landscape-card{position:absolute;margin:0;aspect-ratio:16/10;overflow:hidden;border:7px solid #fff;border-radius:20px;background:#edf4ef;box-shadow:0 28px 70px rgba(0,0,0,.34);transition:.35s ease}.landscape-card:hover{z-index:8;transform:translateY(-10px) rotate(0)}.landscape-card img{width:100%;height:100%;object-fit:cover}.landscape-card figcaption{position:absolute;left:.7rem;right:.7rem;bottom:.7rem;padding:.7rem;display:grid;border-radius:10px;background:rgba(5,37,22,.9);color:#fff}.landscape-card figcaption span{color:var(--yellow);font-size:.53rem;font-weight:900;letter-spacing:.1em}.landscape-card figcaption b{font-family:var(--display);font-size:.75rem}.card-1{z-index:3;left:0;top:4%;width:58%;transform:rotate(-3deg)}.card-2{z-index:4;right:0;top:19%;width:56%;transform:rotate(4deg)}.card-3{z-index:5;left:19%;bottom:0;width:57%;transform:rotate(-1deg)}
+  .library{padding:clamp(5rem,8vw,8rem) clamp(1rem,6vw,7rem);background:var(--surface-2);scroll-margin-top:150px}.library>header{display:flex;align-items:end;justify-content:space-between;gap:3rem}.library header small{color:var(--green)}.library header h2,.library-cta h2{margin:.5rem 0 0;font-family:var(--display);font-size:clamp(2.8rem,5vw,5rem);line-height:.95}.library>header p{max-width:520px;color:var(--muted);line-height:1.75}.category-tabs{margin:2.2rem 0 .8rem;display:flex;gap:.55rem;overflow:auto;padding-bottom:.3rem}.category-tabs button{flex:0 0 auto;padding:.7rem .9rem;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);font:inherit;font-size:.7rem;font-weight:900;cursor:pointer}.category-tabs button:hover,.category-tabs .active{border-color:var(--green);background:var(--deep-green);color:#fff}.filter-status{margin:0 0 1.6rem;color:var(--muted);font-size:.7rem}.filter-status b{color:var(--green)}.library-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2.7rem 1.25rem}.library-book[hidden]{display:none!important}.library-book a{color:var(--text);text-decoration:none}.cover{position:relative;aspect-ratio:.68;overflow:hidden;border-radius:13px;background:#e5eee8;box-shadow:0 13px 34px rgba(16,66,35,.15)}.cover img{width:100%;height:100%;object-fit:cover;transition:.4s ease}.library-book:hover img{transform:scale(1.035)}.cover span{position:absolute;left:.6rem;top:.6rem;padding:.38rem .5rem;border-radius:999px;background:var(--yellow);color:#173020;font-size:.52rem;font-weight:900}.cover i{position:absolute;left:.6rem;right:.6rem;bottom:.6rem;padding:.65rem;border-radius:9px;background:rgba(5,45,25,.92);color:#fff;text-align:center;font-size:.62rem;font-style:normal;font-weight:900;transform:translateY(150%);transition:.25s}.library-book:hover .cover i{transform:none}.library-book small{display:block;margin-top:.8rem;color:var(--green);font-size:.58rem;font-weight:900}.library-book h3{min-height:2.5em;margin:.3rem 0;font-family:var(--display);font-size:.95rem}.library-book p{margin:0;color:var(--muted);font-size:.7rem}.library-cta{margin-top:5rem;padding:2rem 2.3rem;display:flex;align-items:center;justify-content:space-between;gap:2rem;border-radius:24px;background:linear-gradient(120deg,#062b1c,#0a6f3e);color:#fff}.library-cta h2{max-width:760px;font-size:clamp(1.8rem,3vw,3rem)}.library-cta a{flex:0 0 auto;padding:1rem 1.15rem;border-radius:12px;background:var(--yellow);color:#173020;text-decoration:none;font-weight:900}
+  @media(max-width:1100px){.library-grid{grid-template-columns:repeat(4,1fr)}.catalog-hero{grid-template-columns:1fr 1fr}.landscape-showcase{min-height:370px}}
+  @media(max-width:800px){.catalog-hero{grid-template-columns:1fr;padding-top:3.5rem}.landscape-showcase{min-height:420px}.library>header{display:block}.library>header p{max-width:720px}.library-grid{grid-template-columns:repeat(3,1fr)}.library-cta{display:block}.library-cta a{display:inline-block;margin-top:1.2rem}}
+  @media(max-width:560px){.catalog-hero{padding:3.2rem 1rem}.catalog-copy h1{font-size:clamp(3.2rem,14vw,4.7rem)}.landscape-showcase{min-height:320px}.card-1{width:66%}.card-2{width:63%}.card-3{width:66%;left:14%}.library{padding-inline:1rem}.library-grid{grid-template-columns:repeat(2,1fr);gap:2rem .8rem}.library-book h3{font-size:.82rem}.library-cta{padding:1.5rem}}
+</style>
+<script>
+  const libraries=document.querySelectorAll('[data-book-library]');
+  libraries.forEach(library=>{
+    const buttons=[...library.querySelectorAll('[data-filter]')];
+    const cards=[...library.querySelectorAll('[data-book-card]')];
+    const count=library.querySelector('[data-result-count]');
+    const applyFilter=(filter)=>{
+      let visible=0;
+      cards.forEach(card=>{
+        const match=filter==='all'||filter===''||(filter==='new'&&card.dataset.new==='true')||(filter==='top'&&card.dataset.top==='true')||card.dataset.category===filter;
+        card.hidden=!match;
+        if(match)visible+=1;
+      });
+      buttons.forEach(button=>{const active=button.dataset.filter===filter||(filter===''&&button.dataset.filter==='all');button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active))});
+      if(count)count.textContent=String(visible);
+    };
+    buttons.forEach(button=>button.addEventListener('click',()=>applyFilter(button.dataset.filter||'all')));
+    applyFilter(library.dataset.initialFilter||'all');
+  });
+</script>

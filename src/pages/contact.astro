@@ -1,0 +1,109 @@
+---
+import InnerPage from '../layouts/InnerPage.astro';
+
+const contactSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Publisher',
+  name: 'Chance Publishers Limited',
+  url: 'https://chancepublishers.com',
+  email: 'info@chancepublishers.com',
+  telephone: '+254758305622',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: 'Kenda House, 4th Floor, Tom Mboya Street',
+    addressLocality: 'Nairobi',
+    postalCode: '00100',
+    addressCountry: 'KE',
+  },
+  sameAs: [
+    'https://www.instagram.com/chancepublishers/',
+    'https://www.tiktok.com/@chancepublishers',
+    'https://www.linkedin.com/company/chance-publishers/',
+  ],
+};
+---
+
+<InnerPage title="Contact Chance Publishers Nairobi" description="Contact Chance Publishers Limited in Nairobi for book publishing, editing, proofreading, cover design, printing and author support in Kenya.">
+  <script type="application/ld+json" set:html={JSON.stringify(contactSchema)} />
+
+  <section class="contact-hero">
+    <div class="contact-hero-copy">
+      <small>CONTACT CHANCE PUBLISHERS</small>
+      <h1>Let’s talk about<br /><i>your book.</i></h1>
+      <p>Whether you have a finished manuscript or a first idea, our Nairobi publishing team will help you understand the next clear step.</p>
+      <div class="hero-actions">
+        <a class="primary" href="https://wa.me/254758305622?text=Hello%20Chance%20Publishers%2C%20I%20would%20like%20to%20discuss%20my%20book.">Chat on WhatsApp <span>↗</span></a>
+        <a href="tel:+254758305622">Call +254 758 305 622</a>
+      </div>
+    </div>
+    <div class="contact-portrait">
+      <img src="/Images/launch/ajtv-0282.jpg" alt="Chance Publishers author and reader community in Nairobi" />
+      <div class="portrait-note"><b>YOUR CHANCE<br />TO GROW</b><span>Publishing support in Kenya</span></div>
+    </div>
+  </section>
+
+  <section class="contact-options" aria-label="Contact options">
+    <a class="contact-card whatsapp" href="https://wa.me/254758305622?text=Hello%20Chance%20Publishers%2C%20I%20would%20like%20a%20free%20publishing%20consultation."><span>◉</span><small>FASTEST RESPONSE</small><h2>WhatsApp us</h2><p>Start a direct conversation with our publishing team.</p><b>+254 758 305 622 →</b></a>
+    <a class="contact-card" href="tel:+254758305622"><span>✆</span><small>PHONE</small><h2>Call our team</h2><p>Talk through your manuscript, printing or publishing needs.</p><b>+254 758 305 622 →</b></a>
+    <a class="contact-card" href="mailto:info@chancepublishers.com"><span>✉</span><small>EMAIL</small><h2>Write to us</h2><p>Send your questions and project details for a considered reply.</p><b>info@chancepublishers.com →</b></a>
+  </section>
+
+  <section class="visit-section">
+    <div class="visit-copy">
+      <small>VISIT OUR NAIROBI OFFICE</small>
+      <h2>Find Chance Publishers in the heart of Nairobi.</h2>
+      <p><b>Kenda House, 4th Floor</b><br />Tom Mboya Street, near Afya Centre<br />Nairobi CBD, Kenya</p>
+      <p class="postal">Postal address: 1776–00100 GPO Nairobi</p>
+      <div class="secondary-numbers"><a href="tel:+254710462063">+254 710 462 063</a><a href="tel:+254112976824">+254 112 976 824</a></div>
+      <a class="directions" href="https://www.google.com/maps/search/?api=1&query=Kenda+House+Tom+Mboya+Street+Nairobi">Open directions in Google Maps ↗</a>
+    </div>
+    <div class="map-wrap">
+      <iframe title="Map showing Kenda House, Tom Mboya Street, Nairobi" src="https://www.google.com/maps?q=Kenda+House,+Tom+Mboya+Street,+Nairobi&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <div class="map-label"><span>⌖</span><div><small>CHANCE PUBLISHERS</small><b>Kenda House • 4th Floor</b></div></div>
+    </div>
+  </section>
+
+  <section class="message-section">
+    <div class="message-intro">
+      <small>YOUR MANUSCRIPT CAN START HERE</small>
+      <h2>Tell us what you are working on.</h2>
+      <p>Share a few details and we will prepare an email to the Chance Publishers team. You can review it before sending.</p>
+      <div class="service-list"><span>Editing & proofreading</span><span>Book cover design</span><span>Book layout & formatting</span><span>Book printing in Nairobi</span><span>Author branding</span><span>Launch & distribution support</span></div>
+    </div>
+    <form class="contact-form" data-contact-form>
+      <label>Full name<input name="name" autocomplete="name" required placeholder="Your name" /></label>
+      <label>Email address<input name="email" type="email" autocomplete="email" required placeholder="you@example.com" /></label>
+      <label>Phone number<input name="phone" type="tel" autocomplete="tel" placeholder="+254…" /></label>
+      <label>What do you need?<select name="service"><option>Publishing consultation</option><option>Editing and proofreading</option><option>Cover design and book layout</option><option>Book printing</option><option>Launch and distribution</option><option>Other publishing support</option></select></label>
+      <label class="full">Tell us about your book<textarea name="message" rows="5" required placeholder="What is the book about, and where are you in your journey?"></textarea></label>
+      <button class="full" type="submit">Prepare my email <span>→</span></button>
+      <p class="full form-note">Your message opens in your email app addressed to info@chancepublishers.com.</p>
+    </form>
+  </section>
+
+  <section class="social-section">
+    <div><small>FOLLOW THE JOURNEY</small><h2>@chancepublishers</h2></div>
+    <nav aria-label="Chance Publishers social media"><a href="https://www.instagram.com/chancepublishers/">Instagram ↗</a><a href="https://www.tiktok.com/@chancepublishers">TikTok ↗</a><a href="https://www.linkedin.com/company/chance-publishers/">LinkedIn ↗</a><a href="https://www.youtube.com/@chancepublishers">YouTube ↗</a></nav>
+  </section>
+</InnerPage>
+
+<script>
+  document.querySelector('[data-contact-form]')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const name = String(form.get('name') || 'Reader');
+    const email = String(form.get('email') || '');
+    const phone = String(form.get('phone') || 'Not provided');
+    const service = String(form.get('service') || 'Publishing consultation');
+    const message = String(form.get('message') || '');
+    const subject = `Publishing enquiry: ${service} — ${name}`;
+    const body = `Hello Chance Publishers,\n\nMy name is ${name}. I would like help with ${service}.\n\n${message}\n\nMy contact details:\nEmail: ${email}\nPhone: ${phone}\n\nThank you.`;
+    window.location.href = `mailto:info@chancepublishers.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  });
+</script>
+
+<style>
+  .contact-hero{min-height:650px;padding:clamp(4rem,7vw,7rem) clamp(1rem,6vw,7rem);display:grid;grid-template-columns:.95fr 1.05fr;align-items:center;gap:clamp(3rem,7vw,8rem);overflow:hidden;background:radial-gradient(circle at 12% 15%,rgba(255,210,28,.22),transparent 24%),linear-gradient(135deg,#062b1c,#0b6a3a);color:#fff}.contact-hero-copy small,.visit-copy>small,.message-intro>small,.social-section small,.contact-card small{color:var(--yellow);font-weight:900;letter-spacing:.14em}.contact-hero h1{margin:.8rem 0 1.4rem;font-family:var(--display);font-size:clamp(4rem,7vw,7rem);line-height:.86;letter-spacing:-.065em}.contact-hero h1 i{color:var(--yellow);font-family:"Patrick Hand",cursive;font-weight:400;font-style:normal}.contact-hero-copy>p{max-width:610px;color:rgba(255,255,255,.82);font-size:1.08rem;line-height:1.8}.hero-actions{display:flex;gap:.8rem;flex-wrap:wrap;margin-top:2rem}.hero-actions a{padding:1rem 1.2rem;border:1px solid rgba(255,255,255,.25);border-radius:13px;color:#fff;text-decoration:none;font-weight:900}.hero-actions .primary{border-color:var(--yellow);background:var(--yellow);color:#173020;box-shadow:0 7px 0 #c89e00}.contact-portrait{position:relative;min-height:480px}.contact-portrait>img{position:absolute;inset:0 7% 0 0;width:93%;height:100%;object-fit:cover;border:9px solid #fff;border-radius:46% 46% 22px 22px;box-shadow:0 30px 80px rgba(0,0,0,.28)}.portrait-note{position:absolute;right:0;bottom:7%;width:155px;height:155px;padding:1rem;display:grid;place-content:center;border:3px solid #163020;border-radius:50%;background:var(--yellow);color:#173020;text-align:center;transform:rotate(7deg)}.portrait-note b{font-family:var(--display);line-height:1}.portrait-note span{margin-top:.4rem;font-size:.55rem;font-weight:900}.contact-options{position:relative;z-index:2;margin-top:-34px;padding:0 clamp(1rem,6vw,7rem) clamp(5rem,8vw,8rem);display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}.contact-card{padding:1.6rem;display:block;border:1px solid var(--line);border-top:5px solid var(--green);border-radius:22px;background:var(--surface);color:var(--text);text-decoration:none;box-shadow:0 18px 50px rgba(17,70,38,.11);transition:.25s ease}.contact-card:hover{transform:translateY(-7px);box-shadow:0 25px 65px rgba(17,70,38,.17)}.contact-card>span{width:52px;height:52px;display:grid;place-items:center;border-radius:15px;background:var(--soft-green);color:var(--deep-green);font-size:1.4rem}.contact-card small{display:block;margin-top:1.2rem;color:var(--green);font-size:.58rem}.contact-card h2{margin:.35rem 0;font-family:var(--display);font-size:1.6rem}.contact-card p{min-height:3em;color:var(--muted);line-height:1.55}.contact-card b{color:var(--deep-green);font-size:.78rem}.contact-card.whatsapp{border-top-color:var(--yellow)}.visit-section{padding:clamp(5rem,8vw,8rem) clamp(1rem,6vw,7rem);display:grid;grid-template-columns:.75fr 1.25fr;align-items:center;gap:clamp(3rem,7vw,7rem);background:var(--surface-2)}.visit-copy h2,.message-intro h2{margin:.7rem 0 1.3rem;font-family:var(--display);font-size:clamp(2.7rem,5vw,5rem);line-height:.95;letter-spacing:-.05em}.visit-copy>p{color:var(--muted);font-size:1rem;line-height:1.75}.visit-copy>p b{color:var(--text);font-family:var(--display);font-size:1.15rem}.postal{font-size:.8rem!important}.secondary-numbers{display:flex;gap:.5rem;flex-wrap:wrap;margin:1.4rem 0}.secondary-numbers a{padding:.6rem .75rem;border-radius:999px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-size:.72rem;font-weight:900}.directions{display:inline-block;color:var(--deep-green);font-weight:900;text-underline-offset:5px}.map-wrap{position:relative;min-height:520px;overflow:hidden;border:8px solid var(--surface);border-radius:28px;box-shadow:0 25px 70px rgba(20,65,36,.15)}.map-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;filter:saturate(.8)}.map-label{position:absolute;left:1rem;bottom:1rem;padding:.8rem 1rem;display:flex;align-items:center;gap:.8rem;border-radius:13px;background:#fff;color:#173020;box-shadow:0 12px 35px rgba(0,0,0,.17)}.map-label>span{font-size:1.5rem;color:var(--green)}.map-label div{display:grid}.map-label small{color:#6a786f;font-size:.52rem;font-weight:900}.map-label b{font-family:var(--display);font-size:.8rem}.message-section{padding:clamp(5rem,8vw,8rem) clamp(1rem,6vw,7rem);display:grid;grid-template-columns:.82fr 1.18fr;gap:clamp(3rem,7vw,7rem);background:var(--surface)}.message-intro>p{max-width:540px;color:var(--muted);line-height:1.75}.service-list{display:flex;gap:.55rem;flex-wrap:wrap;margin-top:1.5rem}.service-list span{padding:.55rem .7rem;border:1px solid var(--line);border-radius:999px;background:var(--surface-2);font-size:.68rem;font-weight:900}.contact-form{padding:clamp(1.2rem,3vw,2.3rem);display:grid;grid-template-columns:1fr 1fr;gap:1rem;border:1px solid var(--line);border-radius:26px;background:var(--surface-2);box-shadow:0 20px 65px rgba(18,75,39,.1)}.contact-form label{display:grid;gap:.45rem;color:var(--text);font-size:.7rem;font-weight:900}.contact-form input,.contact-form select,.contact-form textarea{width:100%;padding:.9rem 1rem;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--text);outline:none}.contact-form textarea{resize:vertical}.contact-form input:focus,.contact-form select:focus,.contact-form textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 15%,transparent)}.contact-form .full{grid-column:1/-1}.contact-form button{padding:1rem 1.2rem;display:flex;justify-content:space-between;border:0;border-radius:12px;background:var(--green);color:#fff;font-family:var(--display);font-weight:900;cursor:pointer;box-shadow:0 6px 0 var(--deep-green)}.form-note{margin:.2rem 0 0;color:var(--muted);font-size:.62rem}.social-section{padding:3rem clamp(1rem,6vw,7rem);display:flex;align-items:center;justify-content:space-between;gap:2rem;background:var(--yellow);color:#173020}.social-section small{color:var(--deep-green)}.social-section h2{margin:.3rem 0 0;font-family:var(--display);font-size:clamp(2rem,4vw,4rem)}.social-section nav{display:flex;gap:.7rem;flex-wrap:wrap;justify-content:flex-end}.social-section a{padding:.7rem .85rem;border:1px solid rgba(23,48,32,.28);border-radius:999px;color:#173020;text-decoration:none;font-size:.72rem;font-weight:900}
+  @media(max-width:900px){.contact-hero,.visit-section,.message-section{grid-template-columns:1fr}.contact-hero{min-height:auto;padding-block:4rem;gap:2.5rem}.contact-hero-copy{max-width:760px}.contact-portrait{width:min(100%,720px);min-height:410px;margin-inline:auto}.contact-options{grid-template-columns:1fr 1fr}.contact-options .contact-card:last-child{grid-column:1/-1}.map-wrap{min-height:430px}}
+  @media(max-width:600px){.contact-hero{padding:3rem 1rem 2.4rem;gap:1.7rem}.contact-hero h1{font-size:clamp(3rem,13vw,4.35rem);line-height:.9}.contact-hero-copy>p{font-size:.92rem;line-height:1.65}.hero-actions{display:grid;margin-top:1.3rem}.hero-actions a{width:100%;padding:.88rem 1rem;text-align:center}.contact-portrait{width:min(100%,420px);min-height:285px}.contact-portrait>img{inset:0;width:100%;border-width:6px;border-radius:24px}.portrait-note{right:.35rem;bottom:-.6rem;width:90px;height:90px;padding:.5rem}.portrait-note b{font-size:.62rem}.portrait-note span{font-size:.43rem}.contact-options{grid-template-columns:1fr;margin-top:0;padding:2rem 1rem 4rem}.contact-options .contact-card:last-child{grid-column:auto}.visit-section,.message-section{padding-inline:1rem}.contact-form{grid-template-columns:1fr}.contact-form label{grid-column:1/-1}.social-section{display:block}.social-section nav{justify-content:flex-start;margin-top:1.2rem}.map-wrap{min-height:330px}}
+</style>
