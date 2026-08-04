@@ -20,7 +20,16 @@
       "Bash(sips -c 1154 770 --cropOffset 830 0 servant-leadership.jpg --out /tmp/servant-front-test.jpg)",
       "Bash(sips -g pixelWidth -g pixelHeight /tmp/servant-front-test.jpg)",
       "Bash(sips -c 1154 770 --cropOffset 0 830 servant-leadership.jpg --out /tmp/servant-front-test2.jpg)",
-      "Bash(sips -g pixelWidth -g pixelHeight servant-leadership-front.jpg)"
+      "Bash(sips -g pixelWidth -g pixelHeight servant-leadership-front.jpg)",
+      "Bash(find ~ -iname \"*chance*publishers*logo*\" 2>/dev/null | grep -v node_modules | grep -v \"/chance-publishers/.git\" *)",
+      "Bash(sips -g pixelWidth -g pixelHeight -g hasAlpha public/Images/brand/chance-logo.png)",
+      "Bash(sips -g pixelWidth -g pixelHeight -g hasAlpha \"/Users/andrewmwendwa/Documents/Chance Publishers Books/Chance Publishers Logo.jpeg\")",
+      "Bash(sips -g pixelWidth -g pixelHeight -g hasAlpha \"/Users/andrewmwendwa/Documents/Chance Publishers Books/Chance Publishers Logo.png\")",
+      "Bash(node -e \"console.log\\(require\\('sharp'\\)\\)\")",
+      "Bash(python3 -c \"from PIL import Image; print\\('PIL ok'\\)\")",
+      "Bash(node /private/tmp/claude-501/-Users-andrewmwendwa-chance-publishers/ab21f94e-c0c6-41d1-b6bd-4aabf81750fc/scratchpad/remove-bg.js \"/Users/andrewmwendwa/Documents/Chance Publishers Books/Chance Publishers Logo.jpeg\" /tmp/chance-logo-new.png 235)",
+      "Bash(sips -g pixelWidth -g pixelHeight -g hasAlpha /tmp/chance-logo-new.png)",
+      "Bash(node -e ' *)"
     ]
   }
 }
