@@ -16,7 +16,11 @@
       "Bash(ps -p 48988 -o pid,ppid,command)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:4321/)",
       "Bash(ps -p 48988 -o pid,command)",
-      "Bash(kill 48988)"
+      "Bash(kill 48988)",
+      "Bash(sips -c 1154 770 --cropOffset 830 0 servant-leadership.jpg --out /tmp/servant-front-test.jpg)",
+      "Bash(sips -g pixelWidth -g pixelHeight /tmp/servant-front-test.jpg)",
+      "Bash(sips -c 1154 770 --cropOffset 0 830 servant-leadership.jpg --out /tmp/servant-front-test2.jpg)",
+      "Bash(sips -g pixelWidth -g pixelHeight servant-leadership-front.jpg)"
     ]
   }
 }
