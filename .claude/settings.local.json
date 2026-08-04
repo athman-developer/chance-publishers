@@ -1,7 +1,22 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npm run *)",
+      "Bash(grep -rniE \"number one on google|#1 on google|rank.{0,15}\\(number one|#1\\)|number 1 on google\" src/)",
+      "Bash(grep -rniE \"attach.{0,30}\\(automatically|email\\)|automatically attach\" src/)",
+      "Bash(cp public/Images/covers/servant-leadership.jpg /tmp/test-servant.jpg)",
+      "Bash(sips -s formatOptions 78 /tmp/test-servant.jpg --out /tmp/test-servant-out.jpg)",
+      "Read(//tmp/**)",
+      "Bash(sips -s format jpeg -s formatOptions 82 public/Images/backgrounds/reading-room-studio.png --out /tmp/reading-room-studio.jpg)",
+      "Bash(git rm *)",
+      "Bash(cd /Users/andrewmwendwa/chance-publishers *)",
+      "Bash(lsof -i :4321 -sTCP:LISTEN)",
+      "Bash(ps -p 48988 -o pid,ppid,command)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:4321/)",
+      "Bash(ps -p 48988 -o pid,command)",
+      "Bash(kill 48988)"
     ]
   }
 }
