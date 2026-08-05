@@ -59,36 +59,45 @@
   body { overflow-x: hidden; }
   .section { padding: 3.35rem var(--mobile-gutter) !important; }
 
-  /* Homepage slideshow: same left/right visual language, scaled into a compact banner. */
+  /* Homepage slideshow: full-bleed photo, corner to corner, with a solid text band overlaid partway down. */
+  .hero-slider { margin-inline: 0 !important; }
   .hero-slider .hero {
-    min-height: 430px !important;
-    padding: 1.25rem var(--mobile-gutter) 3.1rem !important;
-    display: grid !important;
-    grid-template-columns: 1.12fr .88fr !important;
-    align-items: center !important;
-    gap: .65rem !important;
-    background: linear-gradient(120deg, var(--surface) 0 58%, color-mix(in srgb,var(--soft-green) 80%,var(--surface)) 58%) !important;
+    min-height: 560px !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    background: #0a2e1c !important;
   }
-  .hero-slider .hero.reverse .hero-visual { order: initial !important; }
-  .hero-slider .hero-copy { min-width: 0; }
-  .hero-slider .eyebrow { margin-bottom: .55rem !important; padding: .38rem .48rem !important; font-size: .45rem !important; line-height: 1.25; }
-  .hero-slider .hero h1 { margin: 0 0 .65rem !important; font-size: clamp(1.65rem, 8vw, 2.15rem) !important; line-height: .93 !important; letter-spacing: -.045em !important; }
-  .hero-slider .hero-copy > p { margin: 0; font-size: .63rem !important; line-height: 1.48 !important; }
-  .hero-slider .hero-buttons { margin: .8rem 0 0 !important; display: grid !important; gap: .38rem !important; }
-  .hero-slider .hero-buttons .btn { width: 100%; min-height: 0; padding: .58rem .55rem !important; font-size: .52rem !important; border-radius: 8px !important; text-align: center; }
-  .hero-slider .reader-love { display: none !important; }
-  .hero-slider .hero-visual { width: 100% !important; min-height: 230px !important; margin: 0 !important; }
-  .hero-slider .main-photo { inset: 7% 0 7% 7% !important; border-width: 4px !important; border-radius: 15px !important; }
-  .hero-slider .circle-one { width: 115px !important; height: 115px !important; right: -12% !important; top: 4% !important; }
-  .hero-slider .circle-two { width: 92px !important; height: 92px !important; }
-  .hero-slider .floating-book { width: 46px !important; padding: 3px !important; }
-  .hero-slider .book-a { left: -5% !important; top: 1% !important; }
-  .hero-slider .book-b { right: -4% !important; bottom: 4% !important; width: 44px !important; }
-  .hero-slider .floating-book.book-c,
+  .hero-slider .hero.reverse .hero-visual,
+  .hero-slider .hero-visual { order: initial !important; position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; min-height: 0 !important; margin: 0 !important; }
+  .hero-slider .main-photo { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; border: 0 !important; border-radius: 0 !important; transform: none !important; box-shadow: none !important; }
+  .hero-slider .main-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+  .hero-slider .hero-dots,
+  .hero-slider .circle,
+  .hero-slider .floating-book,
   .hero-slider .happy-note,
   .hero-slider .grow-sticker { display: none !important; }
-  .hero-slider .slider-controls { bottom: .45rem !important; padding: .25rem .38rem !important; }
-  .hero-slider .slider-controls > button { width: 25px !important; height: 25px !important; }
+  .hero-slider .hero-copy {
+    position: absolute !important;
+    z-index: 3;
+    left: 0; right: 0; top: 42%; bottom: 0;
+    min-width: 0;
+    overflow: auto;
+    padding: 1.1rem var(--mobile-gutter) 3.6rem !important;
+    background: linear-gradient(120deg, rgba(7,45,27,.95), rgba(10,90,55,.9));
+  }
+  .hero-slider .eyebrow { margin-bottom: .55rem !important; padding: .38rem .48rem !important; font-size: .45rem !important; line-height: 1.25; background: rgba(255,255,255,.16) !important; color: #fff !important; }
+  .hero-slider .eyebrow span { color: var(--yellow) !important; }
+  .hero-slider .hero h1 { margin: 0 0 .5rem !important; font-size: clamp(1.65rem, 8vw, 2.15rem) !important; line-height: .96 !important; letter-spacing: -.045em !important; color: #fff !important; }
+  .hero-slider .hero h1 em { color: var(--yellow) !important; }
+  .hero-slider .hero-copy > p { margin: 0; font-size: .68rem !important; line-height: 1.5 !important; color: rgba(255,255,255,.82) !important; }
+  .hero-slider .hero-buttons { margin: .85rem 0 0 !important; display: grid !important; gap: .38rem !important; }
+  .hero-slider .hero-buttons .btn { width: 100%; min-height: 0; padding: .6rem .55rem !important; font-size: .58rem !important; border-radius: 8px !important; text-align: center; }
+  .hero-slider .btn-play { background: rgba(255,255,255,.12) !important; border-color: rgba(255,255,255,.28) !important; color: #fff !important; }
+  .hero-slider .reader-love { display: none !important; }
+  .hero-slider .slider-controls { bottom: .6rem !important; padding: .25rem .38rem !important; }
+  .hero-slider .slider-controls > button { width: 28px !important; height: 28px !important; }
 
   /* Homepage visual sections. */
   .about-chance { gap: 2rem !important; }
@@ -149,11 +158,96 @@
   .package-notes { grid-template-columns: 1fr !important; }
   .podcast-strip { min-height: 520px; padding: 2.4rem 1rem !important; }
 
-  /* Compact landscape banners on all inner pages. */
+  /* Full-bleed inner-page hero banners: one photo, corner to corner, with a solid text band overlaid partway down. */
   .author-hero,
   .launch-hero,
   .contact-hero,
-  .guide-hero,
+  .guide-hero {
+    position: relative !important;
+    display: block !important;
+    min-height: 560px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    background: #0a2e1c !important;
+  }
+  .author-hero .hero-image,
+  .launch-hero .hero-image,
+  .contact-portrait,
+  .guide-hero .hero-showcase {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+  }
+  .author-hero .hero-image img,
+  .launch-hero .hero-image img,
+  .contact-portrait > img {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+  .author-hero .hero-image b,
+  .launch-hero .hero-image b,
+  .contact-portrait .portrait-note,
+  .guide-hero .hero-showcase > span,
+  .guide-hero .hero-showcase > p { display: none !important; }
+  .guide-hero .mockup-slider { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; aspect-ratio: auto !important; margin: 0 !important; border: 0 !important; border-radius: 0 !important; }
+  .guide-hero .mockup-slider img { object-fit: cover; }
+  .guide-hero .slider-controls { position: absolute !important; z-index: 4; left: 50%; bottom: .6rem !important; transform: translateX(-50%); margin: 0 !important; padding: .3rem .5rem !important; background: rgba(4,20,12,.55) !important; }
+
+  .author-hero .hero-copy,
+  .launch-hero .hero-copy,
+  .contact-hero-copy,
+  .guide-hero .hero-copy {
+    position: absolute !important;
+    z-index: 3;
+    left: 0; right: 0; top: 42%; bottom: 0;
+    min-width: 0;
+    overflow: auto;
+    padding: 1.1rem var(--mobile-gutter) 3.6rem !important;
+    background: linear-gradient(120deg, rgba(7,45,27,.95), rgba(10,90,55,.9)) !important;
+  }
+  .author-hero .hero-copy small,
+  .launch-hero .hero-copy small,
+  .contact-hero-copy small,
+  .guide-hero .hero-copy small { font-size: .42rem !important; letter-spacing: .09em !important; color: #fff !important; }
+  .author-hero .hero-copy h1,
+  .launch-hero .hero-copy h1,
+  .contact-hero h1,
+  .guide-hero .hero-copy h1 {
+    margin: .45rem 0 .65rem !important;
+    font-size: clamp(1.45rem, 7vw, 2rem) !important;
+    line-height: .96 !important;
+    letter-spacing: -.045em !important;
+    color: #fff !important;
+  }
+  .author-hero .hero-copy h1 span,
+  .launch-hero .hero-copy h1 span { white-space: normal !important; }
+  .contact-hero h1 i, .guide-hero .hero-copy h1 i { color: var(--yellow) !important; }
+  .author-hero .hero-copy > p,
+  .launch-hero .hero-copy > p,
+  .contact-hero-copy > p,
+  .guide-hero .hero-copy > p { font-size: .68rem !important; line-height: 1.5 !important; color: rgba(255,255,255,.82) !important; }
+  .author-hero .actions,
+  .launch-hero .actions,
+  .contact-hero .hero-actions,
+  .guide-hero .hero-actions { margin-top: .8rem !important; display: grid !important; gap: .35rem !important; }
+  .author-hero .actions a,
+  .launch-hero .actions a,
+  .contact-hero .hero-actions a,
+  .guide-hero .hero-actions a { padding: .58rem .5rem !important; border-radius: 7px !important; font-size: .55rem !important; text-align: center; color: #fff !important; border-color: rgba(255,255,255,.3) !important; }
+
+  /* Shop and Books hero banners keep their fanned book-cover collage, but reach the edges. */
   .shop-hero,
   .catalog-hero {
     min-height: 350px !important;
@@ -161,17 +255,11 @@
     grid-template-columns: 1.08fr .92fr !important;
     gap: .75rem !important;
     align-items: center !important;
+    border-radius: 0 !important;
+    margin-inline: 0 !important;
   }
-  .author-hero .hero-copy small,
-  .launch-hero .hero-copy small,
-  .contact-hero-copy small,
-  .guide-hero .hero-copy small,
   .shop-hero small,
   .catalog-copy small { font-size: .42rem !important; letter-spacing: .09em !important; }
-  .author-hero .hero-copy h1,
-  .launch-hero .hero-copy h1,
-  .contact-hero h1,
-  .guide-hero .hero-copy h1,
   .shop-hero h1,
   .catalog-hero .catalog-copy h1 {
     margin: .45rem 0 .65rem !important;
@@ -179,48 +267,14 @@
     line-height: .94 !important;
     letter-spacing: -.045em !important;
   }
-  .author-hero .hero-copy h1 span,
-  .launch-hero .hero-copy h1 span { white-space: normal !important; }
-  .author-hero .hero-copy > p,
-  .launch-hero .hero-copy > p,
-  .contact-hero-copy > p,
-  .guide-hero .hero-copy > p,
   .shop-hero p,
   .catalog-copy p { font-size: .58rem !important; line-height: 1.45 !important; }
-  .author-hero .actions,
-  .launch-hero .actions,
-  .contact-hero .hero-actions,
-  .guide-hero .hero-actions,
-  .catalog-hero .hero-actions { margin-top: .75rem !important; display: grid !important; gap: .35rem !important; }
-  .author-hero .actions a,
-  .launch-hero .actions a,
-  .contact-hero .hero-actions a,
-  .guide-hero .hero-actions a,
-  .catalog-hero .hero-actions a,
   .shop-hero > div > a { padding: .54rem .5rem !important; border-radius: 7px !important; font-size: .49rem !important; text-align: center; }
+  .catalog-hero .hero-actions { margin-top: .75rem !important; display: grid !important; gap: .35rem !important; }
+  .catalog-hero .hero-actions a { padding: .54rem .5rem !important; border-radius: 7px !important; font-size: .49rem !important; text-align: center; }
 
-  .author-hero .hero-image,
-  .launch-hero .hero-image,
-  .contact-portrait,
-  .guide-hero .hero-showcase,
   .shop-hero .hero-books,
   .catalog-hero .landscape-showcase { min-height: 205px !important; width: 100% !important; margin: 0 !important; }
-  .author-hero .hero-image img,
-  .launch-hero .hero-image img { border-width: 4px !important; border-radius: 14px !important; }
-  .author-hero .hero-image b,
-  .launch-hero .hero-image b { right: -.2rem !important; bottom: .35rem !important; padding: .45rem !important; border-radius: 7px !important; font-size: .48rem !important; }
-  .contact-portrait > img { inset: 0 !important; width: 100% !important; border-width: 4px !important; border-radius: 14px !important; }
-  .contact-portrait .portrait-note { width: 62px !important; height: 62px !important; right: -.2rem !important; bottom: -.25rem !important; }
-  .contact-portrait .portrait-note span { display: none; }
-  .guide-hero .hero-showcase { padding: .42rem !important; border-radius: 12px !important; }
-  .guide-hero .hero-showcase > span { font-size: .38rem !important; }
-  .guide-hero .hero-showcase > p { display: none; }
-  .guide-hero .mockup-slider { margin-top: .35rem !important; border-width: 3px !important; border-radius: 8px !important; }
-  .guide-hero .slider-controls { margin-top: .35rem !important; gap: .35rem !important; }
-  .guide-hero .slider-controls > button { width: 24px !important; height: 24px !important; }
-  .guide-hero .slider-dots button { width: 5px !important; height: 5px !important; }
-  .guide-hero .slider-dots button.active { width: 14px !important; }
-
   .catalog-hero .landscape-card { border-width: 3px !important; border-radius: 8px !important; }
   .catalog-hero .landscape-card figcaption { left: .3rem !important; right: .3rem !important; bottom: .3rem !important; padding: .35rem !important; border-radius: 5px !important; }
   .catalog-hero .landscape-card figcaption span { display: none; }
