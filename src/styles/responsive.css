@@ -61,11 +61,11 @@
 
   /* Homepage slideshow: same left/right visual language, scaled into a compact banner. */
   .hero-slider .hero {
-    min-height: 430px !important;
-    padding: 1.25rem var(--mobile-gutter) 3.1rem !important;
+    min-height: 0 !important;
+    padding: .85rem var(--mobile-gutter) 3.1rem !important;
     display: grid !important;
     grid-template-columns: 1.12fr .88fr !important;
-    align-items: center !important;
+    align-items: start !important;
     gap: .65rem !important;
     background: linear-gradient(120deg, var(--surface) 0 58%, color-mix(in srgb,var(--soft-green) 80%,var(--surface)) 58%) !important;
   }
