@@ -30,8 +30,7 @@
       "Bash(node /private/tmp/claude-501/-Users-andrewmwendwa-chance-publishers/ab21f94e-c0c6-41d1-b6bd-4aabf81750fc/scratchpad/remove-bg.js \"/Users/andrewmwendwa/Documents/Chance Publishers Books/Chance Publishers Logo.jpeg\" /tmp/chance-logo-new.png 235)",
       "Bash(sips -g pixelWidth -g pixelHeight -g hasAlpha /tmp/chance-logo-new.png)",
       "Bash(node -e ' *)",
-      "Bash(curl -s -X POST https://formspree.io/f/mvkppykj -H \"Accept: application/json\" -F \"name=Test\" -F \"email=test@example.com\" -F \"message=Debug test from curl\" -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\")",
-      "Bash(grep -n \"min-height: 480px !important;\\\\s*$\" /Users/andrewmwendwa/chance-publishers/src/styles/responsive.css)"
+      "Bash(curl -s -X POST https://formspree.io/f/mvkppykj -H \"Accept: application/json\" -F \"name=Test\" -F \"email=test@example.com\" -F \"message=Debug test from curl\" -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\")"
     ]
   }
 }
