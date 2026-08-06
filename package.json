@@ -12,7 +12,9 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/netlify": "^7.0.0",
     "astro": "^6.3.3",
-    "axobject-query": "4.0.0"
+    "axobject-query": "4.0.0",
+    "resend": "^6.18.1"
   }
 }

@@ -39,7 +39,12 @@
       "Bash(sips -g pixelWidth -g pixelHeight public/Images/mockups/not-expired.jpg)",
       "Bash(kill 56619)",
       "Bash(awk 'NR==2{print $2}')",
-      "Bash(kill 58992)"
+      "Bash(kill 58992)",
+      "Bash(npm install *)",
+      "Bash(npm view *)",
+      "Bash(kill 67714)",
+      "Bash(npm uninstall *)",
+      "Bash(kill 69635)"
     ]
   }
 }

@@ -2,7 +2,7 @@
 ---
 <footer class="cp-footer">
   <div class="cp-footer-grid">
-    <form class="cp-footer-submit" data-footer-manuscript><b>Submit your manuscript.</b><p>Add your details, choose the manuscript and open a prepared submission.</p><input name="name" required placeholder="Your full name"/><input name="email" type="email" required placeholder="Your email address"/><textarea name="message" rows="2" placeholder="Title, genre and a short note…"></textarea><label><input name="manuscript" type="file" required accept=".doc,.docx,.pdf,.rtf,.odt" data-footer-file/><span>＋ Upload manuscript</span><small data-footer-file-name>PDF, Word, RTF or ODT</small></label><button class="cp-footer-contact" type="submit">Prepare manuscript email →</button><small class="cp-footer-upload-note">Confirm the selected file is attached in your email app before sending.</small></form>
+    <form class="cp-footer-submit" data-footer-manuscript><b>Submit your manuscript.</b><p>Add your details and choose your manuscript — it goes straight to our editorial team.</p><input name="name" required placeholder="Your full name"/><input name="email" type="email" required placeholder="Your email address"/><textarea name="message" rows="2" placeholder="Title, genre and a short note…"></textarea><label><input name="manuscript" type="file" required accept=".doc,.docx,.pdf,.rtf,.odt" data-footer-file/><span>＋ Upload manuscript</span><small data-footer-file-name>PDF, Word, RTF or ODT</small></label><button class="cp-footer-contact" type="submit">Send manuscript →</button><small class="cp-footer-upload-note">Sent directly — you'll get a confirmation email.</small></form>
     <nav class="cp-footer-nav-col"><b>Explore</b><a href="/books">Books</a><a href="/shop">Shop</a><a href="/authors">Authors</a><a href="/launches">Launches</a><a href="/podcast">The Reading Room</a></nav>
     <nav class="cp-footer-nav-col"><b>Publishing</b><a href="/publish">Publishing guide</a><a href="/#packages">Publishing packages</a><a href="/categories/religion">Categories</a><a href="/contact">Contact us</a><a href="/">Home</a></nav>
     <div class="cp-footer-brand"><img src="/Images/brand/chance-logo.png" alt="Chance Publishers"/><p>Professional book publishing, editing, design and printing support for authors in Kenya.</p><p class="cp-footer-address">Kenda House, 4th Floor, Tom Mboya Street, near Afya Centre, Nairobi<br/>Open Monday–Sunday, 6:00 a.m.–9:00 p.m.<br/><a href="tel:+254758305622">+254 758 305 622</a> · <a href="mailto:chancepublishersltd@gmail.com">chancepublishersltd@gmail.com</a></p></div>
@@ -83,15 +83,30 @@
   footerFile?.addEventListener('change', () => {
     if (footerFileName) footerFileName.textContent = footerFile.files?.[0]?.name || 'PDF, Word, RTF or ODT';
   });
-  footerForm?.addEventListener('submit', (event) => {
+  footerForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const data = new FormData(footerForm);
     const file = footerFile?.files?.[0];
-    const subject = `Manuscript Submission — ${data.get('name') || 'New Author'}`;
-    const body = `Hello Chance Publishers,\n\nKindly find my manuscript for your review.\n\nName: ${data.get('name') || ''}\nEmail: ${data.get('email') || ''}\nSelected manuscript: ${file?.name || 'Not selected'}\n\nAbout the book:\n${data.get('message') || ''}\n\nThank you.`;
-    openConfirm('Opening your email app', `We've filled in your details. Please confirm "${file?.name || 'your manuscript'}" is attached, then press send.`);
-    window.location.href = `mailto:chancepublishersltd@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    footerForm.reset();
-    if (footerFileName) footerFileName.textContent = 'PDF, Word, RTF or ODT';
+    const name = String(data.get('name') || 'New Author');
+    const email = String(data.get('email') || '');
+    const message = String(data.get('message') || '');
+    const button = footerForm.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+    const originalLabel = button?.innerHTML;
+    if (button) { button.disabled = true; button.textContent = 'Sending…'; }
+    try {
+      const response = await fetch('/api/submit-manuscript', { method: 'POST', body: data });
+      const result = await response.json().catch(() => ({ ok: false }));
+      if (!response.ok || !result.ok) throw new Error(result.error || 'send-failed');
+      footerForm.reset();
+      if (footerFileName) footerFileName.textContent = 'PDF, Word, RTF or ODT';
+      openConfirm('Manuscript sent', "Thank you — our editorial team will review it and get back to you as soon as possible. A confirmation has been sent to your email.");
+    } catch (err) {
+      const subject = `Manuscript Submission — ${name}`;
+      const body = `Hello Chance Publishers,\n\nKindly find my manuscript for your review.\n\nName: ${name}\nEmail: ${email}\nSelected manuscript: ${file?.name || 'Not selected'}\n\nAbout the book:\n${message}\n\nThank you.`;
+      openConfirm('Opening your email app instead', `We couldn't send that automatically just now. We've filled in your details — please confirm "${file?.name || 'your manuscript'}" is attached, then press send.`);
+      window.location.href = `mailto:chancepublishersltd@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    } finally {
+      if (button) { button.disabled = false; button.innerHTML = originalLabel || 'Send manuscript →'; }
+    }
   });
 </script>

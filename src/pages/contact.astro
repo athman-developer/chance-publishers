@@ -90,7 +90,6 @@ const contactSchema = {
 </InnerPage>
 
 <script>
-  const FORMSPREE_ENDPOINT = 'https://formspree.io/f/mvkppykj';
   const confirmDialog = document.querySelector('[data-confirm-dialog]');
   const openConfirm = (title, message) => {
     if (!confirmDialog) return;
@@ -111,25 +110,20 @@ const contactSchema = {
     const phone = String(data.get('phone') || 'Not provided');
     const service = String(data.get('service') || 'Publishing consultation');
     const message = String(data.get('message') || '');
-    const subject = `Publishing enquiry: ${service} — ${name}`;
-    const body = `Hello Chance Publishers,\n\nMy name is ${name}. I would like help with ${service}.\n\n${message}\n\nMy contact details:\nEmail: ${email}\nPhone: ${phone}\n\nThank you.`;
-    data.set('_subject', subject);
     const button = form.querySelector('button[type="submit"]');
     const originalLabel = button?.innerHTML;
     if (button) { button.disabled = true; button.textContent = 'Sending…'; }
-    const usingFormspree = !FORMSPREE_ENDPOINT.includes('YOUR_FORM_ID');
     try {
-      if (!usingFormspree) throw new Error('formspree-not-configured');
-      const response = await fetch(FORMSPREE_ENDPOINT, { method: 'POST', body: data, headers: { Accept: 'application/json' } });
-      if (!response.ok) throw new Error('formspree-error');
+      const response = await fetch('/api/submit-contact', { method: 'POST', body: data });
+      const result = await response.json().catch(() => ({ ok: false }));
+      if (!response.ok || !result.ok) throw new Error(result.error || 'send-failed');
       form.reset();
-      openConfirm('Message sent', 'Thank you — our publishing team has received your message and will be in touch soon.');
+      openConfirm('Message sent', 'Thank you — our publishing team has received your message and will be in touch soon. A confirmation has been sent to your email.');
     } catch (err) {
-      if (usingFormspree) {
-        openConfirm('Something went wrong', "We couldn't send that just now. Please try again or email chancepublishersltd@gmail.com directly.");
-      } else {
-        window.location.href = `mailto:chancepublishersltd@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      }
+      const subject = `Publishing enquiry: ${service} — ${name}`;
+      const body = `Hello Chance Publishers,\n\nMy name is ${name}. I would like help with ${service}.\n\n${message}\n\nMy contact details:\nEmail: ${email}\nPhone: ${phone}\n\nThank you.`;
+      openConfirm('Opening your email app instead', "We couldn't send that automatically just now. We've filled in your details in your email app — please press send.");
+      window.location.href = `mailto:chancepublishersltd@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     } finally {
       if (button) { button.disabled = false; button.innerHTML = originalLabel; }
     }
