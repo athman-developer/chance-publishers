@@ -222,7 +222,8 @@
   .contact-portrait .portrait-note span { display: none; }
   .guide-hero .hero-showcase { padding: .42rem !important; border-radius: 12px !important; }
   .guide-hero .hero-showcase > span { font-size: .38rem !important; }
-  .guide-hero .hero-showcase > p { display: none; }
+  .guide-hero .hero-showcase > p,
+  .guide-hero .more-published { display: none; }
   .guide-hero .mockup-slider { margin-top: .35rem !important; border-width: 3px !important; border-radius: 8px !important; }
   .guide-hero .slider-controls { margin-top: .35rem !important; gap: .35rem !important; }
   .guide-hero .slider-controls > button { width: 24px !important; height: 24px !important; }
