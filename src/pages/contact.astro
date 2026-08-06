@@ -6,7 +6,7 @@ const contactSchema = {
   '@type': 'Publisher',
   name: 'Chance Publishers Limited',
   url: 'https://chancepublishers.com',
-  email: 'info@chancepublishers.com',
+  email: 'chancepublishersltd@gmail.com',
   telephone: '+254758305622',
   address: {
     '@type': 'PostalAddress',
@@ -45,7 +45,7 @@ const contactSchema = {
   <section class="contact-options" aria-label="Contact options">
     <a class="contact-card whatsapp" href="https://wa.me/254758305622?text=Hello%20Chance%20Publishers%2C%20I%20would%20like%20a%20free%20publishing%20consultation."><span>◉</span><small>FASTEST RESPONSE</small><h2>WhatsApp us</h2><p>Start a direct conversation with our publishing team.</p><b>+254 758 305 622 →</b></a>
     <a class="contact-card" href="tel:+254758305622"><span>✆</span><small>PHONE</small><h2>Call our team</h2><p>Talk through your manuscript, printing or publishing needs.</p><b>+254 758 305 622 →</b></a>
-    <a class="contact-card" href="mailto:info@chancepublishers.com"><span>✉</span><small>EMAIL</small><h2>Write to us</h2><p>Send your questions and project details for a considered reply.</p><b>info@chancepublishers.com →</b></a>
+    <a class="contact-card" href="mailto:chancepublishersltd@gmail.com"><span>✉</span><small>EMAIL</small><h2>Write to us</h2><p>Send your questions and project details for a considered reply.</p><b>chancepublishersltd@gmail.com →</b></a>
   </section>
 
   <section class="visit-section">
@@ -77,7 +77,7 @@ const contactSchema = {
       <label>What do you need?<select name="service"><option>Publishing consultation</option><option>Editing and proofreading</option><option>Cover design and book layout</option><option>Book printing</option><option>Launch and distribution</option><option>Other publishing support</option></select></label>
       <label class="full">Tell us about your book<textarea name="message" rows="5" required placeholder="What is the book about, and where are you in your journey?"></textarea></label>
       <button class="full" type="submit">Send message <span>→</span></button>
-      <p class="full form-note">Your message is sent directly to info@chancepublishers.com.</p>
+      <p class="full form-note">Your message is sent directly to chancepublishersltd@gmail.com.</p>
     </form>
   </section>
 
@@ -126,9 +126,9 @@ const contactSchema = {
       openConfirm('Message sent', 'Thank you — our publishing team has received your message and will be in touch soon.');
     } catch (err) {
       if (usingFormspree) {
-        openConfirm('Something went wrong', "We couldn't send that just now. Please try again or email info@chancepublishers.com directly.");
+        openConfirm('Something went wrong', "We couldn't send that just now. Please try again or email chancepublishersltd@gmail.com directly.");
       } else {
-        window.location.href = `mailto:info@chancepublishers.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = `mailto:chancepublishersltd@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       }
     } finally {
       if (button) { button.disabled = false; button.innerHTML = originalLabel; }

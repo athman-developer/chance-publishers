@@ -147,7 +147,15 @@
   .package-card { max-width: 430px; width: 100%; margin-inline: auto; }
   .packages-compact .package-card ul { grid-template-columns: 1fr 1fr !important; }
   .package-notes { grid-template-columns: 1fr !important; }
-  .podcast-strip { min-height: 520px; padding: 2.4rem 1rem !important; }
+  .podcast-strip { min-height: 0 !important; padding: 2.4rem 1rem !important; display: flex !important; flex-direction: column !important; }
+  .podcast-mini-card {
+    position: static !important;
+    z-index: auto;
+    top: auto !important; right: auto !important;
+    width: 100% !important;
+    max-width: 360px;
+    margin: 1.75rem auto 0 !important;
+  }
 
   /* Compact landscape banners on all inner pages. */
   .author-hero,
