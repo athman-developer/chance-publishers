@@ -34,7 +34,6 @@
   .catalog-hero .catalog-copy h1 { font-size: clamp(3rem, 7vw, 5rem) !important; }
 
   /* Swipeable landscape rows retain visual variety without a very long page. */
-  .episode-grid,
   .benefit-grid {
     display: flex !important;
     gap: 1rem !important;
@@ -44,9 +43,7 @@
     padding: .25rem 1.4rem 1.1rem;
     margin-inline: -1.4rem;
   }
-  .episode-grid::-webkit-scrollbar,
   .benefit-grid::-webkit-scrollbar { display: none; }
-  .episode-grid > *,
   .benefit-grid > * { flex: 0 0 min(72vw, 360px); scroll-snap-align: start; }
 
   .footer-grid { grid-template-columns: 1fr 1fr !important; gap: 2.2rem 1.4rem !important; }
@@ -245,12 +242,10 @@
   /* Cards that benefit from landscape browsing become swipe rows. */
   .episodes { padding: 3.35rem 0 !important; }
   .episode-head { padding-inline: 1rem; }
-  .episode-grid,
   .benefit-grid {
     padding-inline: 1rem !important;
     margin-inline: 0 !important;
   }
-  .episode-grid > *,
   .benefit-grid > * { flex-basis: 78vw !important; }
 
   /* Long explanations, quotations, forms and package details read top-to-bottom. */
