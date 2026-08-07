@@ -69,7 +69,7 @@
   .hero-slider .hero.reverse .hero-visual { order: initial !important; }
   .hero-slider .hero-copy { min-width: 0; }
   .hero-slider .eyebrow { margin-bottom: .55rem !important; padding: .38rem .48rem !important; font-size: .45rem !important; line-height: 1.25; }
-  .hero-slider .hero h1 { margin: 0 0 .65rem !important; font-size: clamp(1.65rem, 8vw, 2.15rem) !important; line-height: .93 !important; letter-spacing: -.045em !important; }
+  .hero-slider .hero h1, .hero-slider .hero h2 { margin: 0 0 .65rem !important; font-size: clamp(1.65rem, 8vw, 2.15rem) !important; line-height: .93 !important; letter-spacing: -.045em !important; }
   .hero-slider .hero-copy > p { margin: 0; font-size: .63rem !important; line-height: 1.48 !important; }
   .hero-slider .hero-buttons { margin: .8rem 0 0 !important; display: grid !important; gap: .38rem !important; }
   .hero-slider .hero-buttons .btn { width: 100%; min-height: 0; padding: .58rem .55rem !important; font-size: .52rem !important; border-radius: 8px !important; text-align: center; }
@@ -284,7 +284,7 @@
 
 @media (max-width: 370px) {
   .hero-slider .hero { grid-template-columns: 1.08fr .92fr !important; }
-  .hero-slider .hero h1 { font-size: 1.52rem !important; }
+  .hero-slider .hero h1, .hero-slider .hero h2 { font-size: 1.52rem !important; }
   .author-hero,
   .launch-hero,
   .contact-hero,

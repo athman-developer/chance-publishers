@@ -44,7 +44,14 @@
       "Bash(npm view *)",
       "Bash(kill 67714)",
       "Bash(npm uninstall *)",
-      "Bash(kill 69635)"
+      "Bash(kill 69635)",
+      "Bash(gh auth *)",
+      "Bash(git config *)",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(timeout 15 git push -u origin main)",
+      "Bash(git push *)",
+      "Bash(grep -n '\\\\.hero h1{line-height:.9}\\\\|\\\\.hero h1{font-size:clamp\\(3.7rem,17vw,5.4rem\\)}\\\\|\\\\.hero h1{font-size:clamp\\(3.7rem,11vw,5.5rem\\)}\\\\|\\\\.hero h1{font-size:clamp\\(3.05rem,14vw,4.2rem\\)' src/pages/index.astro)"
     ]
   }
 }

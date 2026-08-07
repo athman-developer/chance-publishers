@@ -3,4 +3,4 @@ import InnerPage from '../../layouts/InnerPage.astro';import BookCatalog from '.
 export function getStaticPaths(){return categories.map(category=>({params:{slug:category.slug},props:{category}}))}
 const {category}=Astro.props;
 ---
-<InnerPage title={category.name}><BookCatalog category={category.short} heading={category.name} intro={category.description}/></InnerPage>
+<InnerPage title={`${category.name} Books`} description={`${category.description} Published by Chance Publishers in Nairobi, Kenya.`}><BookCatalog category={category.short} heading={category.name} intro={category.description}/></InnerPage>
