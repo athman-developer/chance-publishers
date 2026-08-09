@@ -2,13 +2,28 @@ export const prerender = false;
 
 import type { APIRoute } from 'astro';
 import { Resend } from 'resend';
+import { isRateLimited } from '../../lib/auth/rate-limit';
 
 const PUBLISHER_EMAIL = 'chancepublishersltd@gmail.com';
 const SENDER = 'Chance Publishers <hello@chancepublishers.com>';
+const MIN_HUMAN_FILL_TIME_MS = 2500;
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, clientAddress }) => {
   try {
     const data = await request.formData();
+
+    // Honeypot: real visitors never see or fill this field, bots often do.
+    // Bots that submit faster than any human could type also get silently dropped.
+    const honeypot = String(data.get('website') || '').trim();
+    const elapsedMs = Number(data.get('elapsedMs') || 0);
+    if (honeypot || (elapsedMs > 0 && elapsedMs < MIN_HUMAN_FILL_TIME_MS)) {
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    }
+
+    if (isRateLimited(`contact:${clientAddress}`)) {
+      return new Response(JSON.stringify({ ok: false, error: 'rate-limited' }), { status: 429 });
+    }
+
     const name = String(data.get('name') || 'Reader').trim();
     const email = String(data.get('email') || '').trim();
     const phone = String(data.get('phone') || 'Not provided').trim();
