@@ -1,0 +1,191 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../lib/db';
+import { userHasRole } from '../../../lib/auth/session';
+import { nextStageOptions } from '../../../lib/print-jobs';
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+
+const printJob = await prisma.printJob.findUnique({
+  where: { id },
+  include: { project: { include: { author: { include: { authorProfile: true } } } }, invoice: { include: { payments: true } } },
+});
+if (!printJob) return Astro.redirect('/portal/author');
+
+const isOwner = printJob.project.authorId === user.id;
+const isAdmin = userHasRole(user, 'ADMIN') || userHasRole(user, 'SUPER_ADMIN');
+if (!isOwner && !isAdmin) return Astro.redirect('/portal/author');
+
+const approvals = await prisma.approval.findMany({
+  where: { projectId: printJob.projectId, fileAsset: { kind: 'PRINT_SAMPLE' } },
+  include: { fileAsset: true },
+  orderBy: { createdAt: 'desc' },
+});
+
+const section = isAdmin ? 'admin' : 'author';
+const error = Astro.url.searchParams.get('error');
+const daysRemaining = printJob.expectedDeliveryDate
+  ? Math.ceil((printJob.expectedDeliveryDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+  : null;
+const nextStages = nextStageOptions(printJob.status);
+---
+<PortalLayout title={printJob.printJobNumber} user={user} section={section}>
+  <a class="back-link" href={isAdmin ? `/portal/admin/projects/${printJob.projectId}` : `/portal/author/projects/${printJob.projectId}`}>← Back</a>
+  <div class="header-row">
+    <div>
+      <small>{printJob.printJobNumber}</small>
+      <h1>Printing — {printJob.project.title}</h1>
+    </div>
+    <span class="status-chip">{printJob.status.replaceAll('_', ' ')}</span>
+  </div>
+
+  {error && <div class="banner error">{error}</div>}
+
+  <div class="card">
+    <h2>Specification</h2>
+    <dl>
+      <div><dt>Quantity</dt><dd>{printJob.quantity}</dd></div>
+      <div><dt>Size</dt><dd>{printJob.bookSize}</dd></div>
+      <div><dt>Pages</dt><dd>{printJob.pageCount}</dd></div>
+      <div><dt>Interior</dt><dd>{printJob.interiorColor}</dd></div>
+      <div><dt>Cover</dt><dd>{printJob.coverType}</dd></div>
+      {printJob.binding && <div><dt>Binding</dt><dd>{printJob.binding}</dd></div>}
+      {printJob.paperType && <div><dt>Paper</dt><dd>{printJob.paperType}</dd></div>}
+    </dl>
+    {printJob.specialNotes && <p class="muted">{printJob.specialNotes}</p>}
+  </div>
+
+  {printJob.estimateLowKes && !printJob.clientPriceKes && (
+    <div class="card">
+      <h2>Estimated range</h2>
+      <p class="estimate">KSh {Number(printJob.estimateLowKes).toLocaleString()} – KSh {Number(printJob.estimateHighKes).toLocaleString()}</p>
+      <p class="muted">Final cost subject to formal quotation.</p>
+    </div>
+  )}
+
+  {printJob.clientPriceKes && (
+    <div class="card">
+      <h2>Quotation</h2>
+      <p class="estimate">KSh {Number(printJob.clientPriceKes).toLocaleString()}</p>
+      <p class="muted">Turnaround: {printJob.turnaroundDays} working days</p>
+      {printJob.invoice && <a class="btn-secondary" href={`/portal/invoices/${printJob.invoice.id}`}>View invoice ({printJob.invoice.status.replaceAll('_', ' ')}) →</a>}
+    </div>
+  )}
+
+  {printJob.productionStartDate && (
+    <div class="card">
+      <h2>Production</h2>
+      <p class="muted">Started {printJob.productionStartDate.toLocaleDateString('en-GB')}</p>
+      {daysRemaining !== null && (
+        daysRemaining >= 0
+          ? <p class="on-track">{daysRemaining} working day{daysRemaining === 1 ? '' : 's'} remaining</p>
+          : <p class="overdue">{Math.abs(daysRemaining)} day{Math.abs(daysRemaining) === 1 ? '' : 's'} overdue</p>
+      )}
+    </div>
+  )}
+
+  {approvals.length > 0 && (
+    <div class="card">
+      <h2>Sample / dummy approval</h2>
+      {approvals.map((a) => (
+        <div class="approval-row">
+          <span>{a.fileAsset.originalFilename}</span>
+          <span class="status-chip small">{a.status.replaceAll('_', ' ')}</span>
+          {isOwner && a.status === 'PENDING' && (
+            <div class="approval-actions">
+              <form method="post" action="/api/portal/author/approvals/decide">
+                <input type="hidden" name="approvalId" value={a.id} />
+                <input type="hidden" name="action" value="approve" />
+                <button type="submit" class="btn-approve">Approve sample</button>
+              </form>
+              <form method="post" action="/api/portal/author/approvals/decide">
+                <input type="hidden" name="approvalId" value={a.id} />
+                <input type="hidden" name="action" value="request-changes" />
+                <input type="text" name="note" placeholder="What needs to change?" />
+                <button type="submit" class="btn-changes">Request changes</button>
+              </form>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )}
+
+  {isAdmin && printJob.status === 'REQUESTED' && (
+    <div class="card">
+      <h2>Set pricing &amp; approve</h2>
+      <p class="muted">Supplier cost is never shown to the author — only the client price.</p>
+      <form method="post" action="/api/portal/admin/print-jobs/set-pricing">
+        <input type="hidden" name="printJobId" value={printJob.id} />
+        <label>Supplier quote (KSh)<input type="number" name="supplierPriceKes" min="1" required /></label>
+        <label>Client price (KSh)<input type="number" name="clientPriceKes" min="1" required /></label>
+        <label>Turnaround (working days)<input type="number" name="turnaroundDays" min="1" required /></label>
+        <label>Printer name<input type="text" name="printerName" required /></label>
+        <button type="submit" class="btn-primary">Approve quotation</button>
+      </form>
+    </div>
+  )}
+
+  {isAdmin && printJob.status === 'QUOTE_APPROVED' && (
+    <div class="card">
+      <p class="muted">Margin: KSh {(Number(printJob.clientPriceKes) - Number(printJob.supplierPriceKes)).toLocaleString()} (client KSh {Number(printJob.clientPriceKes).toLocaleString()} − supplier KSh {Number(printJob.supplierPriceKes).toLocaleString()})</p>
+      <form method="post" action="/api/portal/admin/print-jobs/generate-invoice">
+        <input type="hidden" name="printJobId" value={printJob.id} />
+        <button type="submit" class="btn-primary">Generate client invoice</button>
+      </form>
+    </div>
+  )}
+
+  {isAdmin && !['REQUESTED', 'QUOTE_APPROVED', 'DELIVERED'].includes(printJob.status) && (
+    <div class="card">
+      <h2>Advance stage</h2>
+      {printJob.status === 'PRODUCTION_STARTED' && (
+        <form method="post" action="/api/portal/admin/print-jobs/upload-sample" enctype="multipart/form-data">
+          <input type="hidden" name="printJobId" value={printJob.id} />
+          <label>Upload sample photo/PDF<input type="file" name="sample" accept=".pdf,.jpg,.jpeg,.png" required /></label>
+          <button type="submit" class="btn-primary">Upload sample for author approval</button>
+        </form>
+      )}
+      {nextStages.map((stage) => (
+        <form method="post" action="/api/portal/admin/print-jobs/advance">
+          <input type="hidden" name="printJobId" value={printJob.id} />
+          <input type="hidden" name="targetStatus" value={stage} />
+          <button type="submit" class="btn-secondary-btn">Advance to {stage.replaceAll('_', ' ')}</button>
+        </form>
+      ))}
+    </div>
+  )}
+</PortalLayout>
+<style>
+  .back-link{display:inline-block;margin-bottom:1rem;color:var(--muted);text-decoration:none;font-weight:700;font-size:.82rem}
+  .header-row{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.5rem}
+  .header-row small{color:var(--green);font-weight:800;font-size:.7rem;letter-spacing:.06em}
+  .header-row h1{margin:.2rem 0 0;font-family:var(--display);font-size:1.5rem}
+  .status-chip{padding:.4rem .8rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.72rem;font-weight:800;white-space:nowrap}
+  .status-chip.small{padding:.25rem .5rem;font-size:.62rem}
+  .banner{padding:1rem 1.2rem;border-radius:12px;font-size:.86rem;font-weight:700;margin-bottom:1.5rem;background:#fdecec;color:#b91c1c}
+  .card{max-width:640px;margin-bottom:1.5rem;padding:1.4rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .card h2{margin:0 0 1rem;font-family:var(--display);font-size:1.05rem}
+  dl{display:grid;gap:.5rem;margin:0}
+  dl>div{display:flex;justify-content:space-between;font-size:.85rem}
+  dt{color:var(--muted)}
+  dd{margin:0;font-weight:700}
+  .muted{color:var(--muted);font-size:.85rem}
+  .estimate{font-family:var(--display);font-size:1.6rem;color:var(--deep-green);margin:0 0 .4rem}
+  .on-track{color:var(--deep-green);font-weight:800}
+  .overdue{color:#b91c1c;font-weight:800}
+  .btn-secondary{display:inline-block;margin-top:.6rem;padding:.6rem 1rem;border-radius:10px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-weight:800;font-size:.82rem}
+  form{display:grid;gap:1rem}
+  label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800}
+  input{padding:.7rem .8rem;border:1px solid var(--line);border-radius:9px;font-size:.85rem}
+  .btn-primary,.btn-secondary-btn{padding:.8rem;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;margin-top:.4rem}
+  .btn-secondary-btn{background:var(--soft-green);color:var(--deep-green)}
+  .approval-row{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem;padding:.8rem 0;border-bottom:1px solid var(--line)}
+  .approval-actions{display:flex;gap:.6rem;flex-wrap:wrap;width:100%}
+  .approval-actions form{display:flex;gap:.5rem;flex-direction:row;align-items:center}
+  .btn-approve{padding:.6rem .9rem;border:0;border-radius:8px;background:var(--green);color:#fff;font-weight:800;font-size:.78rem;cursor:pointer;margin:0}
+  .btn-changes{padding:.6rem .9rem;border:1px solid var(--line);border-radius:8px;background:#fff;color:#b91c1c;font-weight:800;font-size:.78rem;cursor:pointer;margin:0}
+  .approval-actions input[type="text"]{padding:.55rem .7rem;font-size:.78rem;min-width:160px}
+</style>

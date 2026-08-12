@@ -1,0 +1,75 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+import { toCsv } from '../../../../lib/csv';
+
+const user = Astro.locals.user!;
+
+const payments = await prisma.payment.findMany({
+  where: { status: 'VERIFIED' },
+  include: { invoice: { include: { project: true } } },
+  orderBy: { verifiedAt: 'desc' },
+});
+
+if (Astro.url.searchParams.get('format') === 'csv') {
+  const csv = toCsv(
+    ['Date', 'Method', 'Amount (KES)', 'Invoice', 'Project'],
+    payments.map((p) => [p.verifiedAt?.toISOString().slice(0, 10) || '', p.method, Number(p.amountKes), p.invoice.invoiceNumber, p.invoice.project.title]),
+  );
+  return new Response(csv, { headers: { 'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename="payments-by-method.csv"' } });
+}
+
+const byMethod = payments.reduce<Record<string, number>>((acc, p) => {
+  acc[p.method] = (acc[p.method] || 0) + Number(p.amountKes);
+  return acc;
+}, {});
+const totalReceived = Object.values(byMethod).reduce((s, v) => s + v, 0);
+---
+<PortalLayout title="Payments by Method" user={user} section="admin">
+  <div class="header-row"><h1>Payments by Method</h1><a class="btn-secondary" href="?format=csv">Export CSV ↓</a></div>
+
+  <div class="bucket-grid">
+    <div class="bucket total"><span>Total received</span><strong>KSh {totalReceived.toLocaleString()}</strong></div>
+    {Object.entries(byMethod).map(([method, amount]) => (
+      <div class="bucket"><span>{method.replaceAll('_', ' ')}</span><strong>KSh {amount.toLocaleString()}</strong></div>
+    ))}
+  </div>
+
+  {payments.length === 0 ? <p class="muted">No verified payments yet.</p> : (
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Method</th><th>Amount</th><th>Invoice</th><th>Project</th></tr></thead>
+        <tbody>
+          {payments.map((p) => (
+            <tr>
+              <td>{p.verifiedAt?.toLocaleDateString('en-GB')}</td>
+              <td><span class="status-chip">{p.method.replaceAll('_', ' ')}</span></td>
+              <td>KSh {Number(p.amountKes).toLocaleString()}</td>
+              <td>{p.invoice.invoiceNumber}</td>
+              <td>{p.invoice.project.title}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  .header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+  h1{margin:0;font-family:var(--display);font-size:1.9rem}
+  .btn-secondary{padding:.7rem 1.1rem;border-radius:10px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-weight:800;font-size:.82rem}
+  .muted{color:var(--muted)}
+  .bucket-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:2rem}
+  .bucket{padding:1.1rem;background:var(--surface);border:1px solid var(--line);border-radius:14px;display:grid;gap:.2rem}
+  .bucket.total{background:var(--soft-green)}
+  .bucket span{color:var(--muted);font-size:.7rem;font-weight:700}
+  .bucket strong{font-family:var(--display);font-size:1.3rem;color:var(--deep-green)}
+  .table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  th,td{padding:.9rem 1rem;text-align:left;white-space:nowrap}
+  thead{background:var(--surface-2)}
+  th{color:var(--muted);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase}
+  tbody tr:not(:last-child){border-bottom:1px solid var(--line)}
+  .status-chip{padding:.3rem .6rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.68rem;font-weight:800}
+</style>

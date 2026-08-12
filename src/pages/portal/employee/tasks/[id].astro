@@ -1,0 +1,118 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+import { taskTypeConfig } from '../../../../lib/workflow';
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+
+const task = await prisma.task.findUnique({
+  where: { id },
+  include: {
+    project: { include: { fileAssets: true } },
+    fileAssets: { orderBy: { version: 'desc' } },
+    internalNotes: { orderBy: { createdAt: 'desc' } },
+  },
+});
+if (!task || task.assignedToUserId !== user.id) return Astro.redirect('/portal/employee');
+
+const config = taskTypeConfig(task.taskType);
+// The most relevant source file for this stage: latest manuscript, unless a
+// prior-stage deliverable exists (e.g. layout should work from the edited copy).
+const sourceFile = task.project.fileAssets
+  .filter((f) => f.kind === 'MANUSCRIPT' || f.kind === 'EDITED_MANUSCRIPT' || f.kind === 'PROOFREAD_MANUSCRIPT')
+  .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+
+const error = Astro.url.searchParams.get('error');
+---
+<PortalLayout title={task.taskType.replaceAll('_', ' ')} user={user} section="employee">
+  <a class="back-link" href="/portal/employee">← My Assignments</a>
+  <div class="header-row">
+    <div>
+      <small>{task.taskNumber} — {task.project.title}</small>
+      <h1>{task.taskType.replaceAll('_', ' ')}</h1>
+    </div>
+    <div style="display:flex;gap:.6rem;align-items:center">
+      <a class="btn-link" href={`/portal/projects/${task.projectId}/messages`}>💬 Messages</a>
+      <span class="status-chip">{task.status.replaceAll('_', ' ')}</span>
+    </div>
+  </div>
+
+  {error === 'no-file' && <div class="banner error">Please choose a file to upload.</div>}
+
+  {task.changeRequestNote && (
+    <div class="banner error"><strong>Changes requested:</strong> {task.changeRequestNote}</div>
+  )}
+
+  <div class="grid-2">
+    <div class="card">
+      <h2>Instructions</h2>
+      <p class="muted">{task.instructions || 'No specific instructions provided.'}</p>
+      {task.dueDate && <p class="muted"><strong>Due:</strong> {task.dueDate.toLocaleDateString('en-GB')}</p>}
+      {sourceFile && (
+        <p class="muted"><strong>Source file:</strong> {sourceFile.originalFilename}
+          <a href={`/api/portal/files/download?fileId=${sourceFile.id}`} target="_blank"> — Download ↗</a>
+        </p>
+      )}
+    </div>
+
+    <div class="card">
+      <h2>Your deliverables</h2>
+      {task.fileAssets.length === 0 ? (
+        <p class="muted">Nothing submitted yet.</p>
+      ) : (
+        <ul class="file-list">
+          {task.fileAssets.map((f) => (
+            <li>v{f.version} — {f.originalFilename} <a href={`/api/portal/files/download?fileId=${f.id}`} target="_blank">↗</a></li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </div>
+
+  {task.status === 'ASSIGNED' && (
+    <form method="post" action="/api/portal/employee/tasks/accept" class="action-card">
+      <input type="hidden" name="taskId" value={task.id} />
+      <p>Accept this assignment to get started.</p>
+      <button type="submit" class="btn-primary">Accept task</button>
+    </form>
+  )}
+
+  {(task.status === 'ACCEPTED' || task.status === 'IN_PROGRESS' || task.status === 'CHANGES_REQUESTED') && (
+    <form method="post" action="/api/portal/employee/tasks/submit" enctype="multipart/form-data" class="action-card">
+      <input type="hidden" name="taskId" value={task.id} />
+      <label>Upload your {config?.label.toLowerCase() || 'deliverable'}<input type="file" name="deliverable" required /></label>
+      <button type="submit" class="btn-primary">Submit for review</button>
+    </form>
+  )}
+
+  {task.status === 'SUBMITTED_FOR_REVIEW' && (
+    <div class="banner ok">Submitted — waiting for review.</div>
+  )}
+  {(task.status === 'APPROVED' || task.status === 'COMPLETED') && (
+    <div class="banner ok">{task.status === 'COMPLETED' ? 'Completed.' : 'Approved — awaiting author sign-off.'}</div>
+  )}
+</PortalLayout>
+<style>
+  .back-link{display:inline-block;margin-bottom:1rem;color:var(--muted);text-decoration:none;font-weight:700;font-size:.82rem}
+  .btn-link{color:var(--green);font-weight:800;font-size:.85rem;text-decoration:none}
+  .header-row{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.5rem}
+  .header-row small{color:var(--green);font-weight:800;font-size:.7rem;letter-spacing:.06em}
+  .header-row h1{margin:.2rem 0 0;font-family:var(--display);font-size:1.6rem;text-transform:capitalize}
+  .status-chip{padding:.4rem .8rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.72rem;font-weight:800;white-space:nowrap}
+  .banner{padding:1rem 1.2rem;border-radius:12px;font-size:.86rem;font-weight:700;margin-bottom:1.5rem}
+  .banner.ok{background:var(--soft-green);color:var(--deep-green)}
+  .banner.error{background:#fdecec;color:#b91c1c}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.5rem}
+  .card{padding:1.4rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .card h2{margin:0 0 .8rem;font-family:var(--display);font-size:1rem}
+  .muted{color:var(--muted);font-size:.85rem;line-height:1.6}
+  .file-list{margin:0;padding-left:1.2rem;font-size:.85rem}
+  .file-list a{color:var(--green);font-weight:800;text-decoration:none}
+  .action-card{max-width:480px;padding:1.4rem;background:var(--surface);border:1px solid var(--line);border-radius:16px;display:grid;gap:1rem;margin-top:1rem}
+  label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800}
+  input[type="file"]{padding:.6rem;border:1px solid var(--line);border-radius:9px;font-size:.85rem}
+  .btn-primary{padding:.85rem;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 5px 0 var(--deep-green)}
+  @media(max-width:700px){.grid-2{grid-template-columns:1fr}}
+</style>

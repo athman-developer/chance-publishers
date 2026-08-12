@@ -1,0 +1,98 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../lib/db';
+
+const user = Astro.locals.user!;
+
+const [authorCount, employeeCount, projectCount, activeProjects] = await Promise.all([
+  prisma.userRole.count({ where: { role: { key: 'AUTHOR' } } }),
+  prisma.userRole.count({ where: { role: { key: { in: ['EMPLOYEE', 'PARTNER'] } } } }),
+  prisma.bookProject.count(),
+  prisma.bookProject.count({ where: { status: 'ACTIVE' } }),
+]);
+
+const recentProjects = await prisma.bookProject.findMany({
+  orderBy: { createdAt: 'desc' },
+  take: 8,
+  include: { author: { include: { authorProfile: true } } },
+});
+
+const awaitingCountersign = await prisma.ndaAgreement.findMany({
+  where: { status: 'AWAITING_PUBLISHER_SIGNATURE' },
+  include: { project: { include: { author: { include: { authorProfile: true } } } } },
+  orderBy: { updatedAt: 'asc' },
+});
+const pendingPaymentsCount = await prisma.payment.count({ where: { status: 'PENDING_VERIFICATION' } });
+const newLaunchRequestsCount = await prisma.launchRequest.count({ where: { status: 'NEW' } });
+---
+<PortalLayout title="Admin Dashboard" user={user} section="admin">
+  <h1>Command Centre</h1>
+  <div class="kpi-grid">
+    <div class="kpi"><span>{authorCount}</span><small>Authors</small></div>
+    <div class="kpi"><span>{employeeCount}</span><small>Employees &amp; Partners</small></div>
+    <div class="kpi"><span>{projectCount}</span><small>Total Book Projects</small></div>
+    <div class="kpi"><span>{activeProjects}</span><small>Active Projects</small></div>
+  </div>
+
+  {(awaitingCountersign.length > 0 || pendingPaymentsCount > 0 || newLaunchRequestsCount > 0) && (
+    <div class="alerts">
+      {pendingPaymentsCount > 0 && (
+        <a class="alert" href="/portal/admin/payments">
+          <strong>{pendingPaymentsCount}</strong> payment{pendingPaymentsCount === 1 ? '' : 's'} awaiting verification
+        </a>
+      )}
+      {newLaunchRequestsCount > 0 && (
+        <a class="alert" href="/portal/admin/launches">
+          <strong>{newLaunchRequestsCount}</strong> new launch request{newLaunchRequestsCount === 1 ? '' : 's'}
+        </a>
+      )}
+      {awaitingCountersign.map((nda) => (
+        <a class="alert" href={`/portal/admin/nda/${nda.id}`}>
+          NDA {nda.ndaNumber} for <strong>{nda.project.title}</strong> awaiting your countersignature
+        </a>
+      ))}
+    </div>
+  )}
+
+  <h2>Recent projects</h2>
+  {recentProjects.length === 0 ? (
+    <p class="muted">No book projects yet.</p>
+  ) : (
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Project</th><th>Book</th><th>Author</th><th>Stage</th><th>Progress</th></tr></thead>
+        <tbody>
+          {recentProjects.map((p) => (
+            <tr>
+              <td><a href={`/portal/admin/projects/${p.id}`}>{p.projectNumber}</a></td>
+              <td>{p.title}</td>
+              <td>{p.author.authorProfile?.fullLegalName || p.author.email}</td>
+              <td>{p.currentStageKey.replaceAll('_', ' ')}</td>
+              <td>{p.overallProgress}%</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  h1{margin:0 0 1.5rem;font-family:var(--display);font-size:1.9rem}
+  h2{margin:2rem 0 1rem;font-family:var(--display);font-size:1.2rem}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem}
+  .kpi{padding:1.4rem;background:var(--surface);border:1px solid var(--line);border-radius:16px;display:grid;gap:.3rem}
+  .kpi span{font-family:var(--display);font-size:2rem;color:var(--deep-green)}
+  .kpi small{color:var(--muted);font-weight:700;font-size:.75rem}
+  .muted{color:var(--muted)}
+  .alerts{display:grid;gap:.6rem;margin:1.5rem 0}
+  .alert{display:block;padding:.9rem 1.1rem;border-radius:12px;background:#fff8e1;color:#8a6800;text-decoration:none;font-size:.85rem;font-weight:700}
+  .alert:hover{background:#fff1c2}
+  .table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  table{width:100%;border-collapse:collapse;font-size:.85rem}
+  th,td{padding:.9rem 1.1rem;text-align:left;white-space:nowrap}
+  thead{background:var(--surface-2)}
+  th{color:var(--muted);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase}
+  tbody tr:not(:last-child){border-bottom:1px solid var(--line)}
+  td a{color:var(--green);font-weight:800;text-decoration:none}
+</style>

@@ -1,0 +1,353 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+import { STAGE_ORDER, STAGE_LABELS } from '../../../../lib/workflow';
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+
+const project = await prisma.bookProject.findUnique({
+  where: { id },
+  include: { package: true, contributors: true, ndaAgreement: true, fileAssets: { where: { kind: 'MANUSCRIPT' }, orderBy: { version: 'desc' } } },
+});
+
+if (!project || project.authorId !== user.id) {
+  return Astro.redirect('/portal/author');
+}
+
+const stageLabel = project.currentStageKey.replaceAll('_', ' ');
+const nda = project.ndaAgreement;
+const manuscriptError = Astro.url.searchParams.get('error');
+const manuscriptSubmitted = Astro.url.searchParams.get('manuscript') === 'submitted';
+
+const tasks = await prisma.task.findMany({
+  where: { projectId: id, assignedToUserId: { not: null } },
+  include: { assignedToUser: { include: { employeeProfile: true, partnerProfile: true } } },
+  distinct: ['assignedToUserId'],
+  orderBy: { createdAt: 'asc' },
+});
+const teamMembers = tasks
+  .map((t) => t.assignedToUser)
+  .filter((u): u is NonNullable<typeof u> => !!u);
+
+const contactGrants = await prisma.contactShareGrant.findMany({
+  where: { projectId: id, authorUserId: user.id, revokedAt: null },
+});
+const grantByEmployee = new Map(contactGrants.map((g) => [g.employeeUserId, g.level]));
+
+const pendingApprovals = await prisma.approval.findMany({
+  where: { projectId: id, status: 'PENDING' },
+  include: { fileAsset: true },
+  orderBy: { createdAt: 'asc' },
+});
+const approvalError = Astro.url.searchParams.get('approvalError');
+
+const currentStageIndex = STAGE_ORDER.indexOf(project.currentStageKey);
+
+let whatsNext: { text: string; href?: string; linkLabel?: string };
+if (!nda || nda.status !== 'EXECUTED') {
+  whatsNext = { text: "Sign and pay for your NDA to unlock manuscript submission.", href: `/portal/author/projects/${id}/nda`, linkLabel: 'Continue your NDA →' };
+} else if (project.fileAssets.length === 0) {
+  whatsNext = { text: 'Your NDA is executed — upload your manuscript to begin editorial review.', href: '#manuscript', linkLabel: 'Upload manuscript ↓' };
+} else if (pendingApprovals.length > 0) {
+  whatsNext = { text: `You have ${pendingApprovals.length} item${pendingApprovals.length > 1 ? 's' : ''} waiting for your review.`, href: '#action-required', linkLabel: 'Review now ↓' };
+} else {
+  whatsNext = { text: "Your book is with our team right now — we'll notify you the moment there's something for you to do." };
+}
+
+const quotations = await prisma.quotation.findMany({ where: { projectId: id }, orderBy: { createdAt: 'desc' } });
+const printJobs = await prisma.printJob.findMany({ where: { projectId: id }, orderBy: { createdAt: 'desc' } });
+const invoices = await prisma.invoice.findMany({
+  where: { projectId: id },
+  include: { payments: true },
+  orderBy: { createdAt: 'desc' },
+});
+const totalInvoiced = invoices.reduce((sum, inv) => sum + Number(inv.amountKes), 0);
+const totalPaid = invoices.reduce(
+  (sum, inv) => sum + inv.payments.filter((p) => p.status === 'VERIFIED').reduce((s, p) => s + Number(p.amountKes), 0),
+  0,
+);
+
+const activity = await prisma.activityEvent.findMany({ where: { projectId: id }, orderBy: { createdAt: 'desc' }, take: 20 });
+---
+<PortalLayout title={project.title} user={user} section="author">
+  <div class="project-detail">
+    <a class="back-link" href="/portal/author">← My Books</a>
+    <div class="header-row">
+      <div>
+        <small>{project.projectNumber}</small>
+        <h1>{project.title}</h1>
+      </div>
+      <div style="display:flex;gap:.6rem;align-items:center">
+        <a class="btn-link" href={`/portal/projects/${id}/messages`}>💬 Messages</a>
+        <span class="status-chip">{project.status.replaceAll('_', ' ')}</span>
+      </div>
+    </div>
+
+    <div class="progress-block">
+      <div class="progress-track"><div class="progress-fill" style={`width:${project.overallProgress}%`}></div></div>
+      <span>{project.overallProgress}% complete — Current stage: {stageLabel}</span>
+    </div>
+
+    <div class="stage-tracker" aria-label="Publishing journey progress">
+      {STAGE_ORDER.map((key, i) => (
+        <div class={`stage-step ${i < currentStageIndex ? 'done' : ''} ${i === currentStageIndex ? 'current' : ''}`}>
+          <span class="stage-dot">{i < currentStageIndex ? '✓' : i + 1}</span>
+          <span class="stage-name">{STAGE_LABELS[key] || key}</span>
+        </div>
+      ))}
+    </div>
+
+    <div class="whats-next">
+      <span class="whats-next-label">Your next step</span>
+      <p>{whatsNext.text}</p>
+      {whatsNext.href && <a class="btn-link" href={whatsNext.href}>{whatsNext.linkLabel}</a>}
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <h3>Book details</h3>
+        <dl>
+          <div><dt>Subtitle</dt><dd>{project.subtitle || '—'}</dd></div>
+          <div><dt>Genre</dt><dd>{project.genre || '—'}</dd></div>
+          <div><dt>Language</dt><dd>{project.language || '—'}</dd></div>
+          <div><dt>Approx. pages</dt><dd>{project.pageCountApprox || '—'}</dd></div>
+        </dl>
+      </div>
+      <div class="info-card">
+        <h3>Publishing package</h3>
+        {project.package ? (
+          <p>{project.package.name} — KSh {Number(project.package.priceKes).toLocaleString()}</p>
+        ) : (
+          <p class="muted">Not selected yet — our team will confirm this with you.</p>
+        )}
+      </div>
+      <div class="info-card">
+        <h3>NDA status</h3>
+        {!nda && <p class="muted">Not started yet.</p>}
+        {nda && nda.status !== 'EXECUTED' && <p class="muted">{nda.status.replaceAll('_', ' ')}</p>}
+        {nda && nda.status === 'EXECUTED' && <p class="muted">Executed ✓</p>}
+        <a class="btn-link" href={`/portal/author/projects/${id}/nda`}>{nda ? 'View NDA' : 'Start NDA →'}</a>
+      </div>
+    </div>
+
+    {teamMembers.length > 0 && (
+      <div class="team-block">
+        <h2>My Publishing Team</h2>
+        <div class="team-grid">
+          {teamMembers.map((member) => {
+            const level = grantByEmployee.get(member.id);
+            const showEmail = level === 'WORK_EMAIL' || level === 'PHONE_AND_EMAIL';
+            const showPhone = level === 'PHONE' || level === 'PHONE_AND_EMAIL';
+            return (
+            <div class="team-card">
+              <div class="avatar">{(member.employeeProfile?.jobTitle || member.partnerProfile?.contactPerson || member.email).charAt(0)}</div>
+              <div>
+                <strong>{member.employeeProfile?.staffId ? `Staff ${member.employeeProfile.staffId}` : member.partnerProfile?.companyName || 'Team member'}</strong>
+                <small>{member.employeeProfile?.jobTitle || 'Publishing team'}</small>
+                {showEmail && <small class="contact-line">{member.email}</small>}
+                {showPhone && member.phone && <small class="contact-line">{member.phone}</small>}
+                {!showEmail && !showPhone && <small class="contact-hidden">Contact via project messages</small>}
+              </div>
+            </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
+
+    {(quotations.length > 0 || invoices.length > 0) && (
+      <div class="finance-block">
+        <h2>Finance</h2>
+        <div class="finance-summary">
+          <div><span class="muted">Invoiced</span><strong>KSh {totalInvoiced.toLocaleString()}</strong></div>
+          <div><span class="muted">Paid</span><strong>KSh {totalPaid.toLocaleString()}</strong></div>
+          <div><span class="muted">Outstanding</span><strong>KSh {(totalInvoiced - totalPaid).toLocaleString()}</strong></div>
+        </div>
+        {quotations.length > 0 && (
+          <div class="finance-list">
+            <h3>Quotations</h3>
+            {quotations.map((q) => (
+              <a href={`/portal/quotations/${q.id}`} class="finance-row">
+                <span>{q.quotationNumber} — {q.type.replaceAll('_', ' ')}</span>
+                <span class="status-chip">{q.status.replaceAll('_', ' ')}</span>
+              </a>
+            ))}
+          </div>
+        )}
+        {invoices.length > 0 && (
+          <div class="finance-list">
+            <h3>Invoices</h3>
+            {invoices.map((inv) => (
+              <a href={`/portal/invoices/${inv.id}`} class="finance-row">
+                <span>{inv.invoiceNumber} — {inv.label || inv.type} — KSh {Number(inv.amountKes).toLocaleString()}</span>
+                <span class="status-chip">{inv.status.replaceAll('_', ' ')}</span>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+
+    <div class="finance-block">
+      <h2>Printing</h2>
+      {printJobs.length === 0 ? (
+        <>
+          <p class="muted">No printing requests yet.</p>
+          <a class="btn-link" href="/portal/author/printing/new">Request a printing quotation →</a>
+        </>
+      ) : (
+        <div class="finance-list">
+          {printJobs.map((pj) => (
+            <a href={`/portal/print-jobs/${pj.id}`} class="finance-row">
+              <span>{pj.printJobNumber} — {pj.quantity} × {pj.bookSize}</span>
+              <span class="status-chip">{pj.status.replaceAll('_', ' ')}</span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+
+    {approvalError === 'invalid' && <div class="banner error">That approval could not be found or has already been decided.</div>}
+    {pendingApprovals.length > 0 && (
+      <div class="approvals-block" id="action-required">
+        <h2>Action required</h2>
+        {pendingApprovals.map((approval) => (
+          <div class="approval-card">
+            <div>
+              <strong>{approval.kind.replaceAll('_', ' ')} — ready for your review</strong>
+              <p class="muted">Version {approval.fileAsset.version} — {approval.fileAsset.originalFilename}</p>
+              <a href={`/api/portal/files/download?fileId=${approval.fileAsset.id}`} target="_blank" class="btn-link">View file ↗</a>
+            </div>
+            <div class="approval-actions">
+              <form method="post" action="/api/portal/author/approvals/decide">
+                <input type="hidden" name="approvalId" value={approval.id} />
+                <input type="hidden" name="action" value="approve" />
+                <button type="submit" class="btn-approve">Approve</button>
+              </form>
+              <form method="post" action="/api/portal/author/approvals/decide" class="changes-form">
+                <input type="hidden" name="approvalId" value={approval.id} />
+                <input type="hidden" name="action" value="request-changes" />
+                <input type="text" name="note" placeholder="What would you like changed?" required />
+                <button type="submit" class="btn-changes">Request changes</button>
+              </form>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {manuscriptError === 'nda-not-executed' && <div class="banner error">Please complete your NDA before submitting a manuscript.</div>}
+    {manuscriptError === 'unsupported-file-type' && <div class="banner error">That file type isn't supported. Please upload a PDF, Word, RTF or ODT file.</div>}
+    {manuscriptError === 'file-too-large' && <div class="banner error">That file is too large (25MB limit).</div>}
+    {manuscriptSubmitted && <div class="banner ok">Manuscript submitted — thank you! Our editorial team will review it and get back to you.</div>}
+
+    {nda?.status === 'EXECUTED' && (
+      <div class="manuscript-block" id="manuscript">
+        <h2>Manuscript</h2>
+        {project.fileAssets.length > 0 && (
+          <ul class="file-list">
+            {project.fileAssets.map((f) => (
+              <li>v{f.version} — {f.originalFilename} <span class="muted">({(f.sizeBytes / 1024).toFixed(0)} KB)</span></li>
+            ))}
+          </ul>
+        )}
+        <form method="post" action="/api/portal/manuscript/upload" enctype="multipart/form-data">
+          <input type="hidden" name="projectId" value={id} />
+          <label>{project.fileAssets.length > 0 ? 'Upload a new version' : 'Upload your manuscript'}<input type="file" name="manuscript" accept=".pdf,.doc,.docx,.rtf,.odt" required /></label>
+          <button type="submit" class="btn-primary">Submit manuscript</button>
+        </form>
+      </div>
+    )}
+
+    {activity.length > 0 && (
+      <div class="timeline-block">
+        <h2>Activity</h2>
+        <ol class="timeline">
+          {activity.map((e) => (
+            <li><small>{e.createdAt.toLocaleString('en-GB')}</small><span>{e.message}</span></li>
+          ))}
+        </ol>
+      </div>
+    )}
+  </div>
+</PortalLayout>
+<style>
+  .back-link{display:inline-block;margin-bottom:1rem;color:var(--muted);text-decoration:none;font-weight:700;font-size:.82rem}
+  .header-row{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.2rem}
+  .header-row small{color:var(--green);font-weight:800;font-size:.7rem;letter-spacing:.08em}
+  .header-row h1{margin:.2rem 0 0;font-family:var(--display);font-size:1.9rem}
+  .status-chip{padding:.4rem .8rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.72rem;font-weight:800;white-space:nowrap}
+  .progress-block{margin-bottom:2rem}
+  .progress-track{height:10px;border-radius:99px;background:var(--soft-green);overflow:hidden;margin-bottom:.5rem}
+  .progress-fill{height:100%;background:var(--green)}
+  .progress-block span{font-size:.8rem;color:var(--muted);font-weight:700}
+  .stage-tracker{display:flex;flex-wrap:wrap;gap:0;margin-bottom:1.2rem;padding:1.2rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .stage-step{display:flex;align-items:center;gap:.5rem;padding:.3rem .8rem .3rem 0;opacity:.5}
+  .stage-step.done,.stage-step.current{opacity:1}
+  .stage-dot{display:grid;place-items:center;flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--soft-green);color:var(--deep-green);font-size:.68rem;font-weight:900}
+  .stage-step.done .stage-dot{background:var(--green);color:#fff}
+  .stage-step.current .stage-dot{background:var(--yellow);color:#172315}
+  .stage-name{font-size:.72rem;font-weight:800;color:var(--muted);white-space:nowrap}
+  .stage-step.current .stage-name{color:var(--text)}
+  .whats-next{margin-bottom:2rem;padding:1.2rem 1.4rem;background:#fff8e1;border:1px solid #f3d98a;border-radius:16px}
+  .whats-next-label{display:block;margin-bottom:.3rem;color:#8a6800;font-weight:900;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase}
+  .whats-next p{margin:0 0 .5rem;font-size:.9rem;font-weight:700;color:var(--text)}
+  .whats-next .btn-link{margin-top:0}
+  @media(max-width:700px){.stage-tracker{flex-direction:column;gap:.5rem}.stage-step{padding-right:0}}
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.2rem}
+  .info-card{padding:1.4rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .info-card h3{margin:0 0 .8rem;font-family:var(--display);font-size:1rem}
+  .info-card dl{display:grid;gap:.5rem;margin:0}
+  .info-card dl>div{display:flex;justify-content:space-between;gap:1rem;font-size:.85rem}
+  .info-card dt{color:var(--muted)}
+  .info-card dd{margin:0;font-weight:700}
+  .muted{color:var(--muted);font-size:.85rem;line-height:1.6;margin:0}
+  .btn-link{display:inline-block;margin-top:.6rem;color:var(--green);font-weight:800;font-size:.85rem;text-decoration:none}
+  .banner{padding:1rem 1.2rem;border-radius:12px;font-size:.88rem;font-weight:700;margin:1.5rem 0}
+  .banner.ok{background:var(--soft-green);color:var(--deep-green)}
+  .banner.error{background:#fdecec;color:#b91c1c}
+  .manuscript-block{margin-top:2rem;padding:1.5rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .manuscript-block h2{margin:0 0 1rem;font-family:var(--display);font-size:1.15rem}
+  .file-list{margin:0 0 1.2rem;padding-left:1.2rem;font-size:.85rem}
+  .manuscript-block form{display:grid;gap:1rem;max-width:420px}
+  .manuscript-block label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800}
+  .manuscript-block input[type="file"]{padding:.6rem;border:1px solid var(--line);border-radius:10px;font-size:.85rem}
+  .btn-primary{padding:.9rem;border:0;border-radius:12px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 6px 0 var(--deep-green)}
+  .team-block{margin-top:2rem}
+  .team-block h2,.approvals-block h2{margin:0 0 1rem;font-family:var(--display);font-size:1.15rem}
+  .team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem}
+  .team-card{display:flex;align-items:center;gap:.8rem;padding:1rem;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+  .avatar{width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;border-radius:50%;background:var(--soft-green);color:var(--deep-green);font-family:var(--display);font-weight:800;text-transform:uppercase}
+  .team-card div:last-child{display:grid;gap:.1rem}
+  .team-card strong{font-size:.85rem}
+  .team-card small{color:var(--muted);font-size:.72rem;font-weight:700}
+  .team-card .contact-line{display:block;color:var(--green)}
+  .team-card .contact-hidden{display:block;color:var(--muted);font-weight:600;font-style:italic}
+  .approvals-block{margin-top:2rem}
+  .approval-card{display:flex;justify-content:space-between;align-items:center;gap:1.5rem;flex-wrap:wrap;padding:1.4rem;background:#fff8e1;border:1px solid #f3d98a;border-radius:16px;margin-bottom:1rem}
+  .approval-card strong{display:block;font-size:.9rem;text-transform:capitalize}
+  .approval-actions{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center}
+  .btn-approve{padding:.75rem 1.1rem;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:800;cursor:pointer}
+  .changes-form{display:flex;gap:.5rem}
+  .changes-form input{padding:.7rem .8rem;border:1px solid var(--line);border-radius:9px;font-size:.82rem;min-width:200px}
+  .btn-changes{padding:.75rem 1rem;border:1px solid var(--line);border-radius:10px;background:#fff;color:#b91c1c;font-weight:800;cursor:pointer}
+  .finance-block{margin-top:2rem;padding:1.5rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .finance-block h2{margin:0 0 1rem;font-family:var(--display);font-size:1.15rem}
+  .finance-block h3{margin:1.2rem 0 .6rem;font-family:var(--display);font-size:.9rem}
+  .finance-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;padding-bottom:1rem;border-bottom:1px solid var(--line)}
+  .finance-summary div{display:grid;gap:.2rem}
+  .finance-summary span.muted{font-size:.72rem}
+  .finance-summary strong{font-family:var(--display);font-size:1.2rem;color:var(--deep-green)}
+  .finance-list{display:grid;gap:.5rem}
+  .finance-row{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.7rem .9rem;background:var(--surface-2);border-radius:9px;text-decoration:none;color:var(--text);font-size:.82rem}
+  .status-chip{padding:.3rem .6rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.66rem;font-weight:800;white-space:nowrap}
+  @media(max-width:560px){.finance-summary{grid-template-columns:1fr}}
+  .timeline-block{margin-top:2rem;padding:1.5rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .timeline-block h2{margin:0 0 1rem;font-family:var(--display);font-size:1.15rem}
+  .timeline{margin:0;padding:0;list-style:none;display:grid;gap:.8rem}
+  .timeline li{display:flex;flex-direction:column;gap:.15rem;padding-left:1rem;border-left:2px solid var(--soft-green)}
+  .timeline small{color:var(--muted);font-size:.68rem;font-weight:700}
+  .timeline span{font-size:.85rem}
+</style>

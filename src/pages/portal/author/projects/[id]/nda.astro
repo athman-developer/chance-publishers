@@ -1,0 +1,208 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../../lib/db';
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+
+const project = await prisma.bookProject.findUnique({
+  where: { id },
+  include: {
+    ndaAgreement: { include: { invoice: { include: { payments: true } }, signatures: true, template: true } },
+  },
+});
+if (!project || project.authorId !== user.id) return Astro.redirect('/portal/author');
+
+const nda = project.ndaAgreement;
+const authorProfile = user.authorProfile;
+const error = Astro.url.searchParams.get('error');
+const submitted = Astro.url.searchParams.get('submitted');
+---
+<PortalLayout title={`NDA — ${project.title}`} user={user} section="author">
+  <a class="back-link" href={`/portal/author/projects/${id}`}>← {project.title}</a>
+  <h1>Non-Disclosure Agreement</h1>
+
+  {error === 'no-template' && <div class="banner error">No active NDA template is configured yet — please contact Chance Publishers.</div>}
+  {error === 'missing-signature' && <div class="banner error">Please provide your full name and a signature before submitting.</div>}
+  {submitted && <div class="banner ok">Payment proof submitted — our finance team will verify it shortly.</div>}
+
+  {!nda && (
+    <form class="nda-form" method="post" action="/api/portal/nda/start">
+      <input type="hidden" name="projectId" value={id} />
+      <p class="intro">Before you can submit your manuscript, please confirm a few details for your NDA. A processing fee applies.</p>
+      <label>ID / Passport number<input type="text" name="authorIdOrPassport" value={authorProfile?.idOrPassportNumber || ''} required /></label>
+      <label>Address<input type="text" name="authorAddress" value={authorProfile?.address || ''} /></label>
+      <h3>Alternative contact (optional)</h3>
+      <div class="row">
+        <label>Full name<input type="text" name="altContactName" /></label>
+        <label>Relationship<input type="text" name="altContactRelationship" /></label>
+      </div>
+      <div class="row">
+        <label>Phone<input type="tel" name="altContactPhone" /></label>
+        <label>Email<input type="email" name="altContactEmail" /></label>
+      </div>
+      <label>ID / Passport number<input type="text" name="altContactIdOrPassport" /></label>
+      <button type="submit" class="btn-primary">Continue to NDA fee</button>
+    </form>
+  )}
+
+  {nda && nda.status === 'FEE_INVOICED' && (
+    <div class="card">
+      <h2>NDA processing fee</h2>
+      <p class="amount">KSh {Number(nda.invoice!.amountKes).toLocaleString()}</p>
+      <p class="muted">Invoice {nda.invoice!.invoiceNumber}</p>
+
+      {nda.invoice!.payments.some((p) => p.status === 'PENDING_VERIFICATION') ? (
+        <div class="banner ok">Your payment proof is submitted and awaiting verification by our finance team.</div>
+      ) : (
+        <>
+          <h3>Pay by bank transfer</h3>
+          <p class="muted">Transfer KSh {Number(nda.invoice!.amountKes).toLocaleString()} to Chance Publishers' account (details provided by our team), then upload your proof of payment below.</p>
+          <form method="post" action="/api/portal/nda/pay-bank-transfer" enctype="multipart/form-data">
+            <input type="hidden" name="projectId" value={id} />
+            <label>Transaction reference<input type="text" name="reference" /></label>
+            <label>Proof of payment (screenshot or PDF)<input type="file" name="proof" accept=".pdf,.jpg,.jpeg,.png" required /></label>
+            <button type="submit" class="btn-primary">Submit proof of payment</button>
+          </form>
+          <p class="muted small">M-Pesa online payment is coming soon. To pay by cash, please contact our office directly.</p>
+        </>
+      )}
+    </div>
+  )}
+
+  {nda && (nda.status === 'FEE_PAID' || nda.status === 'GENERATED') && (
+    <div class="banner ok">Payment verified — your NDA is being prepared. Refresh in a moment.</div>
+  )}
+
+  {nda && nda.status === 'AWAITING_AUTHOR_SIGNATURE' && (
+    <div class="card">
+      <h2>Review and sign your NDA</h2>
+      <a class="btn-secondary" href={`/api/portal/nda/download?ndaId=${nda.id}&type=unsigned`} target="_blank">View NDA document ↗</a>
+      <form method="post" action="/api/portal/nda/sign" class="sig-form" data-sig-form>
+        <input type="hidden" name="projectId" value={id} />
+        <input type="hidden" name="role" value="AUTHOR" />
+        <input type="hidden" name="method" value="TYPED" data-sig-method />
+        <input type="hidden" name="signatureData" data-sig-data />
+        <label>Type your full legal name to sign<input type="text" name="signerName" required /></label>
+        <p class="muted small">Or draw your signature instead:</p>
+        <canvas class="sig-pad" width="480" height="140" data-sig-pad></canvas>
+        <button type="button" class="btn-text" data-sig-clear>Clear drawing</button>
+        <button type="submit" class="btn-primary">Sign NDA</button>
+      </form>
+    </div>
+  )}
+
+  {nda && nda.status === 'AWAITING_WITNESS' && (
+    <div class="card">
+      <h2>Awaiting witness signature</h2>
+      <p class="muted">Your signature has been recorded. A witness now needs to sign — ask them to complete the form below on this device, or share this page with them.</p>
+      <a class="btn-secondary" href={`/api/portal/nda/download?ndaId=${nda.id}&type=unsigned`} target="_blank">View NDA document ↗</a>
+      <form method="post" action="/api/portal/nda/sign" class="sig-form" data-sig-form>
+        <input type="hidden" name="projectId" value={id} />
+        <input type="hidden" name="role" value="WITNESS" />
+        <input type="hidden" name="method" value="TYPED" data-sig-method />
+        <input type="hidden" name="signatureData" data-sig-data />
+        <label>Witness full name<input type="text" name="witnessName" required /></label>
+        <label>Witness ID number<input type="text" name="witnessIdNumber" required /></label>
+        <input type="hidden" name="signerName" data-witness-name-mirror />
+        <p class="muted small">Witness signature:</p>
+        <canvas class="sig-pad" width="480" height="140" data-sig-pad></canvas>
+        <button type="button" class="btn-text" data-sig-clear>Clear drawing</button>
+        <button type="submit" class="btn-primary">Submit witness signature</button>
+      </form>
+    </div>
+  )}
+
+  {nda && nda.status === 'AWAITING_PUBLISHER_SIGNATURE' && (
+    <div class="banner ok">Signed and awaiting countersignature from Chance Publishers. You'll be notified once it's executed.</div>
+  )}
+
+  {nda && nda.status === 'EXECUTED' && (
+    <div class="banner ok">
+      <strong>NDA executed.</strong> You can now submit your manuscript from your project page.
+      <br />
+      <a href={`/api/portal/nda/download?ndaId=${nda.id}&type=executed`} target="_blank">Download executed NDA ↗</a>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  .back-link{display:inline-block;margin-bottom:1rem;color:var(--muted);text-decoration:none;font-weight:700;font-size:.82rem}
+  h1{margin:0 0 1.5rem;font-family:var(--display);font-size:1.8rem}
+  .banner{padding:1rem 1.2rem;border-radius:12px;font-size:.88rem;font-weight:700;margin-bottom:1.5rem}
+  .banner.ok{background:var(--soft-green);color:var(--deep-green)}
+  .banner.error{background:#fdecec;color:#b91c1c}
+  .card{max-width:600px;padding:2rem;background:var(--surface);border:1px solid var(--line);border-radius:20px}
+  .card h2{margin:0 0 1rem;font-family:var(--display);font-size:1.3rem}
+  .amount{font-family:var(--display);font-size:2rem;color:var(--deep-green);margin:0}
+  .muted{color:var(--muted);font-size:.85rem;line-height:1.6}
+  .muted.small{font-size:.76rem}
+  .nda-form{max-width:600px;padding:2rem;background:var(--surface);border:1px solid var(--line);border-radius:20px;display:grid;gap:1rem}
+  .nda-form h3{margin:1rem 0 0;font-family:var(--display);font-size:1rem}
+  .intro{margin:0 0 .5rem;color:var(--muted);line-height:1.6}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800}
+  input{padding:.8rem .9rem;border:1px solid var(--line);border-radius:10px;font-size:.95rem;font-family:inherit}
+  .btn-primary{margin-top:.4rem;padding:.9rem;border:0;border-radius:12px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 6px 0 var(--deep-green)}
+  .btn-secondary{display:inline-block;margin-bottom:1.2rem;padding:.7rem 1rem;border-radius:10px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-weight:800;font-size:.85rem}
+  .btn-text{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:.8rem;padding:.3rem 0;text-align:left}
+  .sig-form{display:grid;gap:.8rem;margin-top:.5rem}
+  .sig-pad{width:100%;max-width:480px;border:1px dashed var(--line);border-radius:12px;background:var(--surface-2);touch-action:none}
+  @media(max-width:560px){.row{grid-template-columns:1fr}}
+</style>
+<script>
+  document.querySelectorAll<HTMLFormElement>('[data-sig-form]').forEach((form) => {
+    const canvas = form.querySelector<HTMLCanvasElement>('[data-sig-pad]');
+    const methodInput = form.querySelector<HTMLInputElement>('[data-sig-method]');
+    const dataInput = form.querySelector<HTMLInputElement>('[data-sig-data]');
+    const clearBtn = form.querySelector<HTMLButtonElement>('[data-sig-clear]');
+    const witnessMirror = form.querySelector<HTMLInputElement>('[data-witness-name-mirror]');
+    const witnessNameField = form.querySelector<HTMLInputElement>('input[name="witnessName"]');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
+    ctx.strokeStyle = '#183025';
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    let drawing = false;
+    let hasDrawing = false;
+
+    const pos = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      return { x: (e.clientX - rect.left) * (canvas.width / rect.width), y: (e.clientY - rect.top) * (canvas.height / rect.height) };
+    };
+    canvas.addEventListener('pointerdown', (e) => {
+      drawing = true;
+      hasDrawing = true;
+      const p = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (!drawing) return;
+      const p = pos(e);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    });
+    ['pointerup', 'pointerleave'].forEach((evt) => canvas.addEventListener(evt, () => (drawing = false)));
+    clearBtn?.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasDrawing = false;
+    });
+
+    form.addEventListener('submit', (e) => {
+      const nameField = form.querySelector<HTMLInputElement>('input[name="signerName"]:not([type=hidden])') || witnessNameField;
+      if (witnessMirror && witnessNameField) witnessMirror.value = witnessNameField.value;
+      if (hasDrawing) {
+        methodInput!.value = 'DRAWN';
+        dataInput!.value = canvas.toDataURL('image/png');
+      } else {
+        methodInput!.value = 'TYPED';
+        dataInput!.value = nameField?.value || '';
+      }
+      if (!dataInput!.value) {
+        e.preventDefault();
+        alert('Please type your name or draw your signature.');
+      }
+    });
+  });
+</script>

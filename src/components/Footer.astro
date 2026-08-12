@@ -2,7 +2,7 @@
 ---
 <footer class="cp-footer">
   <div class="cp-footer-grid">
-    <form class="cp-footer-submit" data-footer-manuscript><b>Submit your manuscript.</b><p>Add your details and choose your manuscript — it goes straight to our editorial team.</p><input name="name" required placeholder="Your full name"/><input name="email" type="email" required placeholder="Your email address"/><textarea name="message" rows="2" placeholder="Title, genre and a short note…"></textarea><label><input name="manuscript" type="file" required accept=".doc,.docx,.pdf,.rtf,.odt" data-footer-file/><span>＋ Upload manuscript</span><small data-footer-file-name>PDF, Word, RTF or ODT</small></label><button class="cp-footer-contact" type="submit">Send manuscript →</button><small class="cp-footer-upload-note">Sent directly — you'll get a confirmation email.</small></form>
+    <div class="cp-footer-submit"><b>Ready to publish your manuscript?</b><p>Protect your work first. Complete your NDA, sign it securely, then submit your manuscript to our editorial team.</p><a class="cp-footer-contact" href="/portal/register">Start manuscript submission →</a><a class="cp-footer-portal-link" href="/portal/login">Already started? Sign in to your author portal</a></div>
     <nav class="cp-footer-nav-col"><b>Explore</b><a href="/books">Books</a><a href="/shop">Shop</a><a href="/authors">Authors</a><a href="/launches">Launches</a><a href="/podcast">The Reading Room</a></nav>
     <nav class="cp-footer-nav-col"><b>Publishing</b><a href="/publish">Publishing guide</a><a href="/#packages">Publishing packages</a><a href="/categories/religion">Categories</a><a href="/contact">Contact us</a><a href="/">Home</a></nav>
     <div class="cp-footer-brand"><img src="/Images/brand/chance-logo.png" alt="Chance Publishers"/><p>Professional book publishing, editing, design and printing support for authors in Kenya.</p><p class="cp-footer-address">Kenda House, 4th Floor, Tom Mboya Street, near Afya Centre, Nairobi<br/>Open Monday–Sunday, 6:00 a.m.–9:00 p.m.<br/><a href="tel:+254758305622">+254 758 305 622</a> · <a href="mailto:chancepublishersltd@gmail.com">chancepublishersltd@gmail.com</a></p></div>
@@ -10,7 +10,6 @@
   <div class="cp-footer-social"><a href="https://www.facebook.com/chancepublishers" aria-label="Facebook">f</a><a href="https://www.instagram.com/chancepublishers/" aria-label="Instagram">◎</a><a href="https://www.linkedin.com/company/chance-publishers/" aria-label="LinkedIn">in</a><a href="https://www.youtube.com/@chancepublishers" aria-label="YouTube">▶</a><a href="https://www.tiktok.com/@chancepublishers" aria-label="TikTok">♪</a></div>
   <div class="cp-footer-bottom"><span>© 2026 Chance Publishers Limited</span><span>Your chance to grow.</span></div>
 </footer>
-<dialog class="confirm-dialog" data-confirm-dialog><button class="dialog-close" type="button" data-confirm-close aria-label="Close">×</button><span class="confirm-icon">✓</span><h2 data-confirm-title>Manuscript sent</h2><p data-confirm-message>Thank you — our publishing team will be in touch soon.</p><button type="button" class="confirm-ok" data-confirm-close>Done</button></dialog>
 
 <style is:global>
   .cp-footer{padding:4rem clamp(1rem,5vw,6rem) 1.5rem;background:#092719;color:#fff}
@@ -38,18 +37,11 @@
   .cp-footer-submit>label span{color:var(--yellow);font-size:.65rem;font-weight:900}
   .cp-footer-submit>label small,.cp-footer-upload-note{color:rgba(255,255,255,.58);font-size:.52rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .cp-footer-submit button{border:0;cursor:pointer}
-  .cp-footer-contact{display:inline-flex;margin-top:.3rem;padding:.75rem 1rem;border-radius:10px;background:var(--yellow);color:#172315!important;font-weight:900}
+  .cp-footer-contact{display:inline-flex;margin-top:.3rem;padding:.75rem 1rem;border-radius:10px;background:var(--yellow);color:#172315!important;font-weight:900;text-decoration:none}
+  .cp-footer-portal-link{margin-top:.6rem;color:rgba(255,255,255,.7)!important;font-size:.72rem;text-decoration:underline}
   .cp-footer-social{margin:2.5rem auto 0;display:flex;justify-content:center;gap:.6rem}
   .cp-footer-social a{width:40px;height:40px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:.76rem;font-weight:900}
   .cp-footer-bottom{margin-top:1.3rem;padding-top:1.1rem;display:flex;justify-content:space-between;border-top:1px solid rgba(255,255,255,.14);font-size:.68rem}
-
-  .confirm-dialog{width:min(420px,calc(100vw - 2rem));padding:2.2rem 2rem;text-align:center;border:1px solid rgba(255,255,255,.2);border-radius:26px;background:linear-gradient(145deg,#092d1c,#061b12);color:#fff;box-shadow:0 35px 120px rgba(0,0,0,.55)}
-  .confirm-dialog::backdrop{background:rgba(3,12,8,.72);backdrop-filter:blur(7px)}
-  .confirm-icon{display:grid;width:56px;height:56px;margin:0 auto 1rem;place-items:center;border-radius:50%;background:var(--yellow);color:#173020;font-size:1.6rem;font-weight:900}
-  .confirm-dialog h2{margin:0 0 .6rem;font-family:var(--display);font-size:1.6rem}
-  .confirm-dialog p{margin:0;color:rgba(255,255,255,.75);line-height:1.65}
-  .confirm-ok{margin-top:1.4rem;padding:.85rem 1.4rem;border:0;border-radius:11px;background:var(--yellow);color:#173020;font-family:var(--display);font-weight:900;cursor:pointer}
-  .dialog-close{position:absolute;right:1rem;top:1rem;width:38px;height:38px;border:1px solid rgba(255,255,255,.2);border-radius:50%;background:rgba(255,255,255,.08);color:#fff;font-size:1.3rem;cursor:pointer}
 
   @media(max-width:900px){
     .cp-footer-grid{grid-template-columns:1fr 1fr}
@@ -65,48 +57,3 @@
     .cp-footer-bottom{display:grid;grid-template-columns:1fr;justify-items:center;gap:.4rem;text-align:center}
   }
 </style>
-
-<script>
-  const confirmDialog = document.querySelector('[data-confirm-dialog]');
-  const openConfirm = (title: string, message: string) => {
-    if (!confirmDialog) return;
-    confirmDialog.querySelector('[data-confirm-title]')!.textContent = title;
-    confirmDialog.querySelector('[data-confirm-message]')!.textContent = message;
-    (confirmDialog as HTMLDialogElement).showModal();
-  };
-  document.querySelectorAll('[data-confirm-close]').forEach((button) => button.addEventListener('click', () => (confirmDialog as HTMLDialogElement)?.close()));
-  confirmDialog?.addEventListener('click', (event) => { if (event.target === confirmDialog) (confirmDialog as HTMLDialogElement).close(); });
-
-  const footerForm = document.querySelector('[data-footer-manuscript]') as HTMLFormElement | null;
-  const footerFile = document.querySelector('[data-footer-file]') as HTMLInputElement | null;
-  const footerFileName = document.querySelector('[data-footer-file-name]');
-  footerFile?.addEventListener('change', () => {
-    if (footerFileName) footerFileName.textContent = footerFile.files?.[0]?.name || 'PDF, Word, RTF or ODT';
-  });
-  footerForm?.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const data = new FormData(footerForm);
-    const file = footerFile?.files?.[0];
-    const name = String(data.get('name') || 'New Author');
-    const email = String(data.get('email') || '');
-    const message = String(data.get('message') || '');
-    const button = footerForm.querySelector('button[type="submit"]') as HTMLButtonElement | null;
-    const originalLabel = button?.innerHTML;
-    if (button) { button.disabled = true; button.textContent = 'Sending…'; }
-    try {
-      const response = await fetch('/api/submit-manuscript', { method: 'POST', body: data });
-      const result = await response.json().catch(() => ({ ok: false }));
-      if (!response.ok || !result.ok) throw new Error(result.error || 'send-failed');
-      footerForm.reset();
-      if (footerFileName) footerFileName.textContent = 'PDF, Word, RTF or ODT';
-      openConfirm('Manuscript sent', "Thank you — our editorial team will review it and get back to you as soon as possible. A confirmation has been sent to your email.");
-    } catch (err) {
-      const subject = `Manuscript Submission — ${name}`;
-      const body = `Hello Chance Publishers,\n\nKindly find my manuscript for your review.\n\nName: ${name}\nEmail: ${email}\nSelected manuscript: ${file?.name || 'Not selected'}\n\nAbout the book:\n${message}\n\nThank you.`;
-      openConfirm('Opening your email app instead', `We couldn't send that automatically just now. We've filled in your details — please confirm "${file?.name || 'your manuscript'}" is attached, then press send.`);
-      window.location.href = `mailto:chancepublishersltd@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    } finally {
-      if (button) { button.disabled = false; button.innerHTML = originalLabel || 'Send manuscript →'; }
-    }
-  });
-</script>

@@ -1,0 +1,71 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+import { toCsv } from '../../../../lib/csv';
+
+const user = Astro.locals.user!;
+
+const printJobs = await prisma.printJob.findMany({ where: { printerName: { not: null } } });
+
+const byPrinter = new Map<string, { jobs: number; onTime: number; delivered: number; spend: number }>();
+for (const pj of printJobs) {
+  const key = pj.printerName!;
+  const entry = byPrinter.get(key) || { jobs: 0, onTime: 0, delivered: 0, spend: 0 };
+  entry.jobs += 1;
+  entry.spend += pj.supplierPriceKes ? Number(pj.supplierPriceKes) : 0;
+  if (pj.deliveredAt) {
+    entry.delivered += 1;
+    if (pj.expectedDeliveryDate && pj.deliveredAt <= pj.expectedDeliveryDate) entry.onTime += 1;
+  }
+  byPrinter.set(key, entry);
+}
+
+const rows = [...byPrinter.entries()].map(([name, e]) => ({
+  name,
+  jobs: e.jobs,
+  onTimePct: e.delivered > 0 ? Math.round((e.onTime / e.delivered) * 100) : null,
+  spend: e.spend,
+}));
+
+if (Astro.url.searchParams.get('format') === 'csv') {
+  const csv = toCsv(
+    ['Printer', 'Jobs', 'On-Time %', 'Total Spend (KES)'],
+    rows.map((r) => [r.name, r.jobs, r.onTimePct ?? 'N/A', r.spend]),
+  );
+  return new Response(csv, { headers: { 'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename="printer-performance.csv"' } });
+}
+---
+<PortalLayout title="Printer Performance" user={user} section="admin">
+  <div class="header-row"><h1>Printer Performance</h1><a class="btn-secondary" href="?format=csv">Export CSV ↓</a></div>
+
+  {rows.length === 0 ? <p class="muted">No print jobs recorded yet.</p> : (
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Printer</th><th>Jobs</th><th>On-Time %</th><th>Total Spend</th></tr></thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr>
+              <td>{r.name}</td>
+              <td>{r.jobs}</td>
+              <td>{r.onTimePct !== null ? `${r.onTimePct}%` : '—'}</td>
+              <td>KSh {r.spend.toLocaleString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  .header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+  h1{margin:0;font-family:var(--display);font-size:1.9rem}
+  .btn-secondary{padding:.7rem 1.1rem;border-radius:10px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-weight:800;font-size:.82rem}
+  .muted{color:var(--muted)}
+  .table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  th,td{padding:.9rem 1rem;text-align:left;white-space:nowrap}
+  thead{background:var(--surface-2)}
+  th{color:var(--muted);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase}
+  tbody tr:not(:last-child){border-bottom:1px solid var(--line)}
+</style>

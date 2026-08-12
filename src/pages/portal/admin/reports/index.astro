@@ -1,0 +1,34 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+
+const user = Astro.locals.user!;
+
+const reports = [
+  { href: '/portal/admin/reports/receivables', title: 'Receivables Aging', desc: 'Outstanding invoices grouped by how overdue they are.' },
+  { href: '/portal/admin/reports/pipeline', title: 'Publishing Pipeline', desc: 'Active projects by current stage, plus completed books.' },
+  { href: '/portal/admin/reports/payments', title: 'Payments by Method', desc: 'Verified payments broken down by M-Pesa, card, bank, cash, cheque.' },
+  { href: '/portal/admin/reports/workload', title: 'Employee Workload', desc: 'Active tasks, overdue tasks and completed work per team member.' },
+  { href: '/portal/admin/reports/profitability', title: 'Project Profitability', desc: 'Revenue vs supplier costs per project. Admin-only — never shown to authors.' },
+  { href: '/portal/admin/reports/packages', title: 'Package Performance', desc: 'How many projects and how much revenue each publishing package has generated.' },
+  { href: '/portal/admin/reports/printers', title: 'Printer Performance', desc: 'Jobs handled, on-time delivery and spend per printer.' },
+];
+---
+<PortalLayout title="Reports" user={user} section="admin">
+  <h1>Reports</h1>
+  <div class="report-grid">
+    {reports.map((r) => (
+      <a class="report-card" href={r.href}>
+        <h2>{r.title}</h2>
+        <p>{r.desc}</p>
+      </a>
+    ))}
+  </div>
+</PortalLayout>
+<style>
+  h1{margin:0 0 1.5rem;font-family:var(--display);font-size:1.9rem}
+  .report-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.2rem}
+  .report-card{padding:1.5rem;background:var(--surface);border:1px solid var(--line);border-radius:16px;text-decoration:none;color:var(--text)}
+  .report-card h2{margin:0 0 .5rem;font-family:var(--display);font-size:1.05rem}
+  .report-card p{margin:0;color:var(--muted);font-size:.82rem;line-height:1.5}
+</style>

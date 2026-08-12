@@ -1,0 +1,71 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../lib/db';
+
+const user = Astro.locals.user!;
+const displayName = user.employeeProfile?.jobTitle
+  ? `${user.employeeProfile.jobTitle} ${user.employeeProfile.staffId}`
+  : user.partnerProfile?.contactPerson || user.email;
+
+const tasks = await prisma.task.findMany({
+  where: { assignedToUserId: user.id, status: { notIn: ['COMPLETED', 'CANCELLED'] } },
+  include: { project: true },
+  orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+});
+
+const now = new Date();
+const weekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+const dueToday = tasks.filter((t) => t.dueDate && t.dueDate.toDateString() === now.toDateString());
+const dueThisWeek = tasks.filter((t) => t.dueDate && t.dueDate > now && t.dueDate <= weekFromNow);
+const awaitingReview = tasks.filter((t) => t.status === 'SUBMITTED_FOR_REVIEW');
+---
+<PortalLayout title="My Assignments" user={user} section="employee">
+  <h1>Welcome, {displayName}.</h1>
+
+  <div class="kpi-row">
+    <div class="kpi"><span>{tasks.length}</span><small>Active tasks</small></div>
+    <div class="kpi"><span>{dueToday.length}</span><small>Due today</small></div>
+    <div class="kpi"><span>{dueThisWeek.length}</span><small>Due this week</small></div>
+    <div class="kpi"><span>{awaitingReview.length}</span><small>Awaiting review</small></div>
+  </div>
+
+  {tasks.length === 0 ? (
+    <div class="empty-state">
+      <h2>No assignments yet</h2>
+      <p>Task assignments will appear here once an Admin assigns you to a book project.</p>
+    </div>
+  ) : (
+    <div class="task-grid">
+      {tasks.map((t) => (
+        <a class="task-card" href={`/portal/employee/tasks/${t.id}`}>
+          <small>{t.project.title}</small>
+          <h3>{t.taskType.replaceAll('_', ' ')}</h3>
+          <div class="task-meta">
+            <span class={`status-chip ${t.status.toLowerCase()}`}>{t.status.replaceAll('_', ' ')}</span>
+            {t.dueDate && <span class="due">Due {t.dueDate.toLocaleDateString('en-GB')}</span>}
+          </div>
+        </a>
+      ))}
+    </div>
+  )}
+</PortalLayout>
+<style>
+  h1{margin:0 0 1.5rem;font-family:var(--display);font-size:1.9rem}
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:2rem}
+  .kpi{padding:1.2rem;background:var(--surface);border:1px solid var(--line);border-radius:14px;display:grid;gap:.2rem}
+  .kpi span{font-family:var(--display);font-size:1.7rem;color:var(--deep-green)}
+  .kpi small{color:var(--muted);font-weight:700;font-size:.72rem}
+  .empty-state{padding:3rem 2rem;text-align:center;background:var(--surface);border:1px dashed var(--line);border-radius:20px}
+  .empty-state h2{margin:0 0 .6rem;font-family:var(--display);font-size:1.3rem}
+  .empty-state p{max-width:440px;margin:0 auto;color:var(--muted);line-height:1.6}
+  .task-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1.1rem}
+  .task-card{padding:1.4rem;background:var(--surface);border:1px solid var(--line);border-radius:16px;text-decoration:none;color:var(--text);display:grid;gap:.5rem}
+  .task-card small{color:var(--green);font-weight:800;font-size:.68rem;letter-spacing:.04em}
+  .task-card h3{margin:0;font-family:var(--display);font-size:1.05rem}
+  .task-meta{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-top:.4rem}
+  .status-chip{padding:.3rem .6rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.64rem;font-weight:800}
+  .status-chip.submitted_for_review{background:#fff3cd;color:#8a6800}
+  .status-chip.changes_requested{background:#fdecec;color:#b91c1c}
+  .due{font-size:.7rem;color:var(--muted);font-weight:700}
+</style>

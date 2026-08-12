@@ -1,0 +1,91 @@
+---
+import InnerPage from '../layouts/InnerPage.astro';
+---
+<InnerPage title="Printing Estimate" description="Get an estimated printing cost range for your book in Kenya, then request a formal quotation from Chance Publishers.">
+  <section class="estimate-hero">
+    <small>ESTIMATED PRINTING RANGE</small>
+    <h1>Get a rough printing estimate.</h1>
+    <p>Answer a few questions about your book for an approximate cost range. Final cost is always subject to a formal quotation once your exact specification is confirmed.</p>
+  </section>
+
+  <section class="estimate-section">
+    <form class="estimate-form" data-estimate-form>
+      <label>Book size
+        <select name="bookSize">
+          <option value="A5">A5</option>
+          <option value="B5">B5</option>
+          <option value="A4">A4</option>
+          <option value="6x9">6 × 9</option>
+          <option value="A6">A6</option>
+          <option value="custom">Custom</option>
+        </select>
+      </label>
+      <label>Quantity<input type="number" name="quantity" value="100" min="1" required /></label>
+      <label>Cover type
+        <select name="coverType">
+          <option value="SOFTCOVER">Softcover</option>
+          <option value="HARDCOVER">Hardcover</option>
+        </select>
+      </label>
+      <button type="submit" class="btn-primary">Calculate estimate</button>
+    </form>
+
+    <div class="estimate-result" data-estimate-result hidden>
+      <small>ESTIMATED RANGE</small>
+      <h2 data-estimate-value>—</h2>
+      <p class="disclaimer">This is a rough estimate based on typical Chance Publishers pricing. Final cost depends on paper, binding, finishing and your printer's formal quotation.</p>
+      <a class="btn-secondary" href="/portal/author/printing/new">Request a formal quotation →</a>
+      <p class="alt-link">New here? <a href="/portal/register">Create an author account</a> — you'll be brought right back to this request.</p>
+    </div>
+  </section>
+</InnerPage>
+<style>
+  .estimate-hero{padding:clamp(4rem,7vw,6rem) clamp(1rem,5vw,6rem) 2rem;background:linear-gradient(135deg,#062b1c,#0b6a3a);color:#fff}
+  .estimate-hero small{color:var(--yellow);font-weight:900;letter-spacing:.14em;font-size:.7rem}
+  .estimate-hero h1{margin:.7rem 0 1rem;font-family:var(--display);font-size:clamp(2.6rem,5vw,4.5rem);line-height:.95;letter-spacing:-.04em}
+  .estimate-hero p{max-width:600px;color:rgba(255,255,255,.85);line-height:1.7}
+  .estimate-section{padding:clamp(3rem,6vw,5rem) clamp(1rem,5vw,6rem);display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:start}
+  .estimate-form{display:grid;gap:1.1rem;padding:1.8rem;background:var(--surface-2);border-radius:20px}
+  label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800;color:var(--text)}
+  select,input{padding:.8rem .9rem;border:1px solid var(--line);border-radius:10px;font-size:.95rem;font-family:inherit}
+  .btn-primary{margin-top:.4rem;padding:.9rem;border:0;border-radius:12px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 6px 0 var(--deep-green)}
+  .estimate-result{padding:1.8rem;background:var(--soft-green);border-radius:20px}
+  .estimate-result small{color:var(--deep-green);font-weight:900;font-size:.68rem;letter-spacing:.1em}
+  .estimate-result h2{margin:.5rem 0 1rem;font-family:var(--display);font-size:2.2rem;color:var(--deep-green)}
+  .disclaimer{color:var(--muted);font-size:.82rem;line-height:1.6;margin-bottom:1.3rem}
+  .btn-secondary{display:inline-block;padding:.85rem 1.2rem;border-radius:12px;background:var(--green);color:#fff;text-decoration:none;font-weight:800}
+  .alt-link{margin-top:1rem;font-size:.8rem;color:var(--muted)}
+  .alt-link a{color:var(--green);font-weight:800;text-decoration:none}
+  @media(max-width:820px){.estimate-section{grid-template-columns:1fr}}
+</style>
+<script>
+  const RANGES: Record<string, Record<number, [number, number]>> = {
+    A5: {20:[600,800],50:[700,1000],100:[280,430],200:[300,400],250:[300,525],500:[180,330],1000:[120,340]},
+    B5: {20:[650,850],50:[750,1050],100:[300,450],200:[280,420],250:[280,450],500:[250,350],1000:[250,300]},
+    A4: {20:[700,900],50:[800,1100],100:[400,800],200:[300,600],250:[300,600],500:[220,450],1000:[180,400]},
+    '6x9': {20:[650,850],50:[750,1050],100:[450,650],200:[380,550],250:[380,550],500:[350,500],1000:[280,430]},
+    A6: {20:[500,700],50:[600,900],100:[250,400],200:[220,380],250:[220,380],500:[160,300],1000:[110,300]},
+    custom: {20:[600,900],50:[700,1050],100:[300,700],200:[280,550],250:[280,550],500:[200,450],1000:[150,400]},
+  };
+  const BANDS = [20,50,100,200,250,500,1000];
+  function nearestBand(qty: number) {
+    return BANDS.reduce((closest, b) => (Math.abs(b - qty) < Math.abs(closest - qty) ? b : closest));
+  }
+  const form = document.querySelector<HTMLFormElement>('[data-estimate-form]');
+  const result = document.querySelector<HTMLElement>('[data-estimate-result]');
+  const valueEl = document.querySelector<HTMLElement>('[data-estimate-value]');
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const bookSize = String(form.elements.namedItem('bookSize') && (form.elements.namedItem('bookSize') as HTMLSelectElement).value);
+    const quantity = Number((form.elements.namedItem('quantity') as HTMLInputElement).value) || 1;
+    const coverType = (form.elements.namedItem('coverType') as HTMLSelectElement).value;
+    const band = nearestBand(quantity);
+    let [low, high] = RANGES[bookSize][band];
+    if (coverType === 'HARDCOVER') { low = Math.round(low * 1.4); high = Math.round(high * 2.0); }
+    const lowTotal = (low * quantity).toLocaleString();
+    const highTotal = (high * quantity).toLocaleString();
+    if (valueEl) valueEl.textContent = `KSh ${lowTotal} – KSh ${highTotal}`;
+    result?.removeAttribute('hidden');
+    result?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+</script>

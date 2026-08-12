@@ -1,0 +1,119 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+
+const user = Astro.locals.user!;
+const pending = await prisma.payment.findMany({
+  where: { status: 'PENDING_VERIFICATION', method: { not: 'CHEQUE' } },
+  include: { invoice: { include: { project: { include: { author: { include: { authorProfile: true } } } } } } },
+  orderBy: { createdAt: 'asc' },
+});
+const pendingCheques = await prisma.cheque.findMany({
+  where: { status: { in: ['RECEIVED', 'DEPOSITED', 'AWAITING_CLEARANCE'] } },
+  include: { payment: { include: { invoice: { include: { project: true } } } } },
+  orderBy: { createdAt: 'asc' },
+});
+---
+<PortalLayout title="Payments to verify" user={user} section="admin">
+  <h1>Payments awaiting verification</h1>
+  {pending.length === 0 ? (
+    <p class="muted">Nothing pending — all caught up.</p>
+  ) : (
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Author</th><th>Project</th><th>Invoice</th><th>Amount</th><th>Method</th><th>Reference</th><th>Proof</th><th></th></tr></thead>
+        <tbody>
+          {pending.map((p) => (
+            <tr>
+              <td>{p.invoice.project.author.authorProfile?.fullLegalName || p.invoice.project.author.email}</td>
+              <td>{p.invoice.project.title}</td>
+              <td>{p.invoice.invoiceNumber}</td>
+              <td>KSh {Number(p.amountKes).toLocaleString()}</td>
+              <td>{p.method.replaceAll('_', ' ')}</td>
+              <td>{p.reference || '—'}</td>
+              <td>{p.proofFileKey ? <a href={`/api/portal/nda/proof-download?paymentId=${p.id}`} target="_blank">View ↗</a> : '—'}</td>
+              <td class="actions">
+                <form method="post" action="/api/portal/admin/verify-payment">
+                  <input type="hidden" name="paymentId" value={p.id} />
+                  <input type="hidden" name="action" value="verify" />
+                  <button type="submit" class="btn-verify">Verify</button>
+                </form>
+                <form method="post" action="/api/portal/admin/verify-payment">
+                  <input type="hidden" name="paymentId" value={p.id} />
+                  <input type="hidden" name="action" value="reject" />
+                  <button type="submit" class="btn-reject">Reject</button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+
+  <h2>Cheques</h2>
+  {pendingCheques.length === 0 ? (
+    <p class="muted">No cheques in progress.</p>
+  ) : (
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Project</th><th>Cheque #</th><th>Bank</th><th>Drawer</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {pendingCheques.map((c) => (
+            <tr>
+              <td>{c.payment.invoice.project.title}</td>
+              <td>{c.chequeNumber}</td>
+              <td>{c.bank}</td>
+              <td>{c.drawer}</td>
+              <td>KSh {Number(c.payment.amountKes).toLocaleString()}</td>
+              <td><span class="status-chip">{c.status.replaceAll('_', ' ')}</span></td>
+              <td class="actions">
+                {c.status === 'RECEIVED' && (
+                  <form method="post" action="/api/portal/admin/cheques/advance">
+                    <input type="hidden" name="chequeId" value={c.id} />
+                    <input type="hidden" name="invoiceId" value={c.payment.invoiceId} />
+                    <input type="hidden" name="action" value="deposit" />
+                    <button type="submit" class="btn-verify">Mark deposited</button>
+                  </form>
+                )}
+                {c.status === 'AWAITING_CLEARANCE' && (
+                  <>
+                    <form method="post" action="/api/portal/admin/cheques/advance">
+                      <input type="hidden" name="chequeId" value={c.id} />
+                      <input type="hidden" name="invoiceId" value={c.payment.invoiceId} />
+                      <input type="hidden" name="action" value="clear" />
+                      <button type="submit" class="btn-verify">Mark cleared</button>
+                    </form>
+                    <form method="post" action="/api/portal/admin/cheques/advance">
+                      <input type="hidden" name="chequeId" value={c.id} />
+                      <input type="hidden" name="invoiceId" value={c.payment.invoiceId} />
+                      <input type="hidden" name="action" value="bounce" />
+                      <button type="submit" class="btn-reject">Mark bounced</button>
+                    </form>
+                  </>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  h1{margin:0 0 1.5rem;font-family:var(--display);font-size:1.9rem}
+  h2{margin:2rem 0 1rem;font-family:var(--display);font-size:1.2rem}
+  .status-chip{padding:.3rem .6rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.68rem;font-weight:800}
+  .muted{color:var(--muted)}
+  .table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  th,td{padding:.9rem 1rem;text-align:left;white-space:nowrap}
+  thead{background:var(--surface-2)}
+  th{color:var(--muted);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase}
+  tbody tr:not(:last-child){border-bottom:1px solid var(--line)}
+  .actions{display:flex;gap:.5rem}
+  .actions form{display:inline}
+  .btn-verify{padding:.5rem .8rem;border:0;border-radius:8px;background:var(--green);color:#fff;font-weight:800;font-size:.75rem;cursor:pointer}
+  .btn-reject{padding:.5rem .8rem;border:1px solid var(--line);border-radius:8px;background:transparent;color:#b91c1c;font-weight:800;font-size:.75rem;cursor:pointer}
+</style>

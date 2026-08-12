@@ -1,0 +1,81 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+
+const user = Astro.locals.user!;
+const projects = await prisma.bookProject.findMany({ where: { authorId: user.id }, orderBy: { createdAt: 'desc' } });
+const error = Astro.url.searchParams.get('error');
+---
+<PortalLayout title="Request printing quotation" user={user} section="author">
+  {projects.length === 0 ? (
+    <div class="empty-state">
+      <h2>Start a book project first</h2>
+      <p>Printing quotations are tied to a book project. Create one, then come back to request printing.</p>
+      <a class="btn-primary" href="/portal/author/projects/new">Start a book project</a>
+    </div>
+  ) : (
+    <div class="form-page">
+      <h1>Request a printing quotation</h1>
+      <p class="sub">Give us your book's specification and we'll prepare a formal quotation.</p>
+      {error === 'missing-fields' && <div class="form-error">Please fill in all required fields.</div>}
+      <form method="post" action="/api/portal/printing/request">
+        <label>Book project
+          <select name="projectId" required>
+            {projects.map((p) => <option value={p.id}>{p.title}</option>)}
+          </select>
+        </label>
+        <div class="row">
+          <label>Book size
+            <select name="bookSize">
+              <option value="A5">A5</option>
+              <option value="B5">B5</option>
+              <option value="A4">A4</option>
+              <option value="6x9">6 × 9</option>
+              <option value="A6">A6</option>
+              <option value="custom">Custom</option>
+            </select>
+          </label>
+          <label>Quantity<input type="number" name="quantity" value="100" min="1" required /></label>
+        </div>
+        <div class="row">
+          <label>Page count<input type="number" name="pageCount" min="1" required /></label>
+          <label>Interior colour
+            <select name="interiorColor">
+              <option value="BW">Black &amp; white</option>
+              <option value="COLOR">Full colour</option>
+              <option value="MIXED">Mixed</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label>Cover type
+            <select name="coverType">
+              <option value="SOFTCOVER">Softcover</option>
+              <option value="HARDCOVER">Hardcover</option>
+            </select>
+          </label>
+          <label>Binding<input type="text" name="binding" placeholder="Perfect binding" /></label>
+        </div>
+        <label>Paper type<input type="text" name="paperType" placeholder="Book paper / cream, 80gsm" /></label>
+        <label>Special notes<textarea name="specialNotes" rows="2"></textarea></label>
+        <button type="submit" class="btn-primary">Submit request</button>
+      </form>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  .empty-state{max-width:520px;padding:3rem 2rem;text-align:center;background:var(--surface);border:1px dashed var(--line);border-radius:20px}
+  .empty-state h2{margin:0 0 .6rem;font-family:var(--display);font-size:1.3rem}
+  .empty-state p{color:var(--muted);margin:0 auto 1.5rem;line-height:1.6}
+  .form-page{max-width:640px;padding:2.5rem;background:var(--surface);border:1px solid var(--line);border-radius:20px}
+  .form-page h1{margin:0 0 .4rem;font-family:var(--display);font-size:1.6rem}
+  .sub{margin:0 0 1.5rem;color:var(--muted);line-height:1.6}
+  .form-error{margin-bottom:1.2rem;padding:.8rem 1rem;border-radius:10px;background:#fdecec;color:#b91c1c;font-size:.85rem;font-weight:700}
+  form{display:grid;gap:1.1rem}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800}
+  input,select,textarea{padding:.8rem .9rem;border:1px solid var(--line);border-radius:10px;font-size:.95rem;font-family:inherit}
+  .btn-primary{margin-top:.4rem;padding:.9rem;border:0;border-radius:12px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 6px 0 var(--deep-green)}
+  @media(max-width:560px){.row{grid-template-columns:1fr}}
+</style>

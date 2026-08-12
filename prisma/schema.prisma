@@ -1,0 +1,851 @@
+// Chance Publishers Portal — Phase 1 schema
+// Later phases add NDA, task/workflow, finance, printing, launch, messaging,
+// notification and audit-log models as additive migrations on top of this.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identity & roles
+// ---------------------------------------------------------------------------
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+model User {
+  id              String     @id @default(cuid())
+  email           String     @unique
+  passwordHash    String
+  emailVerified   Boolean    @default(false)
+  phone           String?
+  phoneVerified   Boolean    @default(false)
+  status          UserStatus @default(PENDING_VERIFICATION)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  roles           UserRole[]
+  authorProfile   AuthorProfile?
+  employeeProfile EmployeeProfile?
+  partnerProfile  PartnerProfile?
+  bookProjects    BookProject[]
+  sessions        Session[]
+  notifications   Notification[]
+  messages        Message[]
+  internalNotesAuthored InternalNote[]
+  contactShareGrantsAsEmployee ContactShareGrant[] @relation("ContactShareEmployee")
+  contactShareGrantsAsAuthor   ContactShareGrant[] @relation("ContactShareAuthor")
+  verificationTokens VerificationToken[]
+  assignedTasks   Task[]   @relation("TaskAssignee")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  csrfToken String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum VerificationTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+model VerificationToken {
+  id        String                 @id @default(cuid())
+  userId    String
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      VerificationTokenType
+  tokenHash String                 @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime               @default(now())
+
+  @@index([userId])
+}
+
+// Seeded roles: AUTHOR, EMPLOYEE, PARTNER, SUPERVISOR, ADMIN, SUPER_ADMIN,
+// plus internal/external job-title roles (EDITOR, LAYOUT_DESIGNER, etc.) added
+// in later phases as granular permission needs grow.
+model Role {
+  id    String     @id @default(cuid())
+  key   String     @unique
+  label String
+  users UserRole[]
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+// ---------------------------------------------------------------------------
+// Profiles
+// ---------------------------------------------------------------------------
+
+model AuthorProfile {
+  id                       String   @id @default(cuid())
+  userId                   String   @unique
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullLegalName            String
+  idOrPassportNumber       String?
+  address                  String?
+  profilePhotoUrl          String?
+  altContactName           String?
+  altContactRelationship   String?
+  altContactPhone          String?
+  altContactIdOrPassport   String?
+  altContactEmail          String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  SUSPENDED
+}
+
+enum EmployeeDesignation {
+  INTERNAL
+  EXTERNAL
+}
+
+model EmployeeProfile {
+  id               String              @id @default(cuid())
+  userId           String              @unique
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  staffId          String              @unique
+  jobTitle         String?
+  altPhone         String?
+  status           EmployeeStatus      @default(ACTIVE)
+  designation      EmployeeDesignation @default(INTERNAL)
+  profilePhotoUrl  String?
+  skills           String[]            @default([])
+  agreementStart   DateTime?
+  agreementExpiry  DateTime?
+  internalNotes    String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+}
+
+enum AgreementStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+model PartnerProfile {
+  id                     String          @id @default(cuid())
+  userId                 String          @unique
+  user                   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName            String
+  contactPerson          String
+  contactPhotoUrl        String?
+  agreementStatus        AgreementStatus @default(DRAFT)
+  agreementStart         DateTime?
+  agreementExpiry        DateTime?
+  paymentTerms           String?
+  standardTurnaroundDays Int?
+  createdAt              DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Publishing packages
+// ---------------------------------------------------------------------------
+
+enum PackageStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model PublishingPackage {
+  id           String            @id @default(cuid())
+  name         String
+  priceKes     Decimal           @db.Decimal(12, 2)
+  description  String?
+  status       PackageStatus     @default(DRAFT)
+  sortOrder    Int               @default(0)
+  services     PackageService[]
+  bookProjects BookProject[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model PackageService {
+  id            String            @id @default(cuid())
+  packageId     String
+  package       PublishingPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  name          String
+  includedUnits String?
+  notes         String?
+}
+
+// ---------------------------------------------------------------------------
+// Book projects
+// ---------------------------------------------------------------------------
+
+enum ProjectStatus {
+  ONBOARDING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+model BookProject {
+  id               String             @id @default(cuid())
+  projectNumber    String             @unique
+  authorId         String
+  author           User               @relation(fields: [authorId], references: [id])
+  title            String
+  subtitle         String?
+  edition          String?
+  genre            String?
+  language         String?
+  pageCountApprox  Int?
+  packageId        String?
+  package          PublishingPackage? @relation(fields: [packageId], references: [id])
+  currentStageKey  String             @default("AUTHOR_ONBOARDING")
+  overallProgress  Int                @default(0)
+  status           ProjectStatus      @default(ONBOARDING)
+  notes            String?
+  contributors     BookContributor[]
+  ndaAgreement     NdaAgreement?
+  quotations       Quotation[]
+  printJobs        PrintJob[]
+  launchRequests   LaunchRequest[]
+  invoices         Invoice[]
+  fileAssets       FileAsset[]
+  tasks            Task[]
+  approvals        Approval[]
+  internalNotes    InternalNote[]
+  messages         Message[]
+  activityEvents   ActivityEvent[]
+  contactShareGrants ContactShareGrant[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model BookContributor {
+  id               String      @id @default(cuid())
+  projectId        String
+  project          BookProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name             String
+  contributionType String
+  email            String?
+  notes            String?
+}
+
+// ---------------------------------------------------------------------------
+// Admin-configurable settings (NDA fee, quotation validity, etc.)
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// NDA
+// ---------------------------------------------------------------------------
+
+enum NdaTemplateStatus {
+  DRAFT
+  ACTIVE
+  RETIRED
+}
+
+// Not hard-coded into application logic — Admin manages templates here.
+// IMPORTANT: only a legally-approved template should ever be moved to ACTIVE.
+// Historical source NDA text is seeded as DRAFT with known drafting issues
+// (Employer/Employee references, contradictory duration clause) intentionally
+// left for legal review rather than silently rewritten.
+model NdaTemplate {
+  id                    String            @id @default(cuid())
+  name                  String
+  version               Int               @default(1)
+  effectiveDate         DateTime?
+  status                NdaTemplateStatus @default(DRAFT)
+  bodyMarkdown          String
+  witnessRequired       Boolean           @default(true)
+  publisherSignatoryName String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  agreements NdaAgreement[]
+}
+
+enum NdaStatus {
+  DETAILS_PENDING
+  FEE_INVOICED
+  FEE_PAID
+  GENERATED
+  AWAITING_AUTHOR_SIGNATURE
+  AWAITING_WITNESS
+  AWAITING_PUBLISHER_SIGNATURE
+  EXECUTED
+}
+
+model NdaAgreement {
+  id                     String       @id @default(cuid())
+  ndaNumber              String       @unique
+  projectId              String       @unique
+  project                BookProject  @relation(fields: [projectId], references: [id])
+  templateId             String
+  template               NdaTemplate  @relation(fields: [templateId], references: [id])
+  status                 NdaStatus    @default(DETAILS_PENDING)
+  authorIdOrPassport     String?
+  authorAddress          String?
+  altContactName         String?
+  altContactRelationship String?
+  altContactPhone        String?
+  altContactIdOrPassport String?
+  altContactEmail        String?
+  witnessName            String?
+  witnessIdNumber        String?
+  generatedPdfKey        String?
+  executedPdfKey         String?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  signatures NdaSignature[]
+  invoice    Invoice?
+}
+
+enum SignerRole {
+  AUTHOR
+  WITNESS
+  PUBLISHER
+}
+
+enum SignatureMethod {
+  TYPED
+  DRAWN
+}
+
+model NdaSignature {
+  id             String          @id @default(cuid())
+  ndaAgreementId String
+  ndaAgreement   NdaAgreement    @relation(fields: [ndaAgreementId], references: [id], onDelete: Cascade)
+  signerRole     SignerRole
+  signerName     String
+  method         SignatureMethod
+  signatureData  String          // typed name, or a data: URL for a drawn signature
+  ipAddress      String?
+  userAgent      String?
+  signedAt       DateTime        @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Finance
+// ---------------------------------------------------------------------------
+
+enum QuotationType {
+  PUBLISHING
+  PRINTING
+  LAUNCH
+  ADDITIONAL_SERVICES
+  CUSTOM
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+  CONVERTED_TO_INVOICE
+}
+
+model Quotation {
+  id              String          @id @default(cuid())
+  quotationNumber String          @unique
+  projectId       String
+  project         BookProject     @relation(fields: [projectId], references: [id])
+  type            QuotationType
+  status          QuotationStatus @default(SENT)
+  paymentTerms    String          @default("70/30")
+  validUntil      DateTime
+  notes           String?
+  createdByUserId String
+  viewedAt        DateTime?
+  decidedAt       DateTime?
+  declineReason   String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  items    QuotationItem[]
+  invoices Invoice[]
+}
+
+model QuotationItem {
+  id           String    @id @default(cuid())
+  quotationId  String
+  quotation    Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  description  String
+  quantity     Int       @default(1)
+  unitPriceKes Decimal   @db.Decimal(12, 2)
+  sortOrder    Int       @default(0)
+}
+
+enum InvoiceType {
+  NDA_FEE
+  PUBLISHING
+  PRINTING
+  LAUNCH
+  OTHER
+}
+
+enum InvoiceStatus {
+  SENT
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  invoiceNumber  String        @unique
+  projectId      String
+  project        BookProject   @relation(fields: [projectId], references: [id])
+  type           InvoiceType
+  status         InvoiceStatus @default(SENT)
+  amountKes      Decimal       @db.Decimal(12, 2)
+  label          String?
+  description    String?
+  quotationId    String?
+  quotation      Quotation?    @relation(fields: [quotationId], references: [id])
+  ndaAgreementId String?       @unique
+  ndaAgreement   NdaAgreement? @relation(fields: [ndaAgreementId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  items    InvoiceItem[]
+  payments Payment[]
+  printJob PrintJob?
+}
+
+model InvoiceItem {
+  id           String  @id @default(cuid())
+  invoiceId    String
+  invoice      Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description  String
+  quantity     Int     @default(1)
+  unitPriceKes Decimal @db.Decimal(12, 2)
+  sortOrder    Int     @default(0)
+}
+
+enum PaymentMethod {
+  MPESA
+  CARD
+  BANK_TRANSFER
+  CASH
+  CHEQUE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  invoiceId        String
+  invoice          Invoice       @relation(fields: [invoiceId], references: [id])
+  method           PaymentMethod
+  amountKes        Decimal       @db.Decimal(12, 2)
+  status           PaymentStatus @default(PENDING_VERIFICATION)
+  proofFileKey     String?
+  reference        String?
+  recordedByUserId String?
+  verifiedByUserId String?
+  verifiedAt       DateTime?
+  createdAt        DateTime      @default(now())
+
+  cheque           Cheque?
+  receipt          FileAsset?
+  mpesaTransaction MpesaTransaction?
+}
+
+// Tracks a Daraja STK push request/callback pair. A row here with no
+// resultCode yet means Safaricom's callback hasn't arrived; the Payment
+// only ever moves to VERIFIED from inside the callback handler, never from
+// the STK-push-initiated response.
+model MpesaTransaction {
+  id                 String    @id @default(cuid())
+  paymentId          String    @unique
+  payment            Payment   @relation(fields: [paymentId], references: [id])
+  merchantRequestId  String
+  checkoutRequestId  String    @unique
+  phoneNumber        String
+  mpesaReceiptNumber String?
+  resultCode         Int?
+  resultDesc         String?
+  callbackReceivedAt DateTime?
+  createdAt          DateTime  @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Printing
+// ---------------------------------------------------------------------------
+
+enum PrintJobStatus {
+  REQUESTED
+  SUPPLIER_QUOTE_PENDING
+  QUOTE_APPROVED
+  CLIENT_INVOICED
+  PRINTER_ACCEPTED
+  PRODUCTION_STARTED
+  SAMPLE_READY
+  QC_APPROVED
+  QC_REJECTED
+  FULL_PRINT_RUN
+  COMPLETED
+  DELIVERED
+}
+
+// clientPriceKes is what the author is quoted and pays. supplierPriceKes is
+// what Chance Publishers pays the printer — NEVER exposed to the author, only
+// to Admin (see spec Section 19: gross margin must stay private).
+model PrintJob {
+  id                   String         @id @default(cuid())
+  printJobNumber       String         @unique
+  projectId            String
+  project              BookProject    @relation(fields: [projectId], references: [id])
+  status               PrintJobStatus @default(REQUESTED)
+  quantity             Int
+  bookSize             String
+  pageCount            Int
+  interiorColor        String
+  paperType            String?
+  coverType            String
+  finish               String?
+  binding              String?
+  specialNotes         String?
+  estimateLowKes       Decimal?       @db.Decimal(12, 2)
+  estimateHighKes      Decimal?       @db.Decimal(12, 2)
+  clientPriceKes       Decimal?       @db.Decimal(12, 2)
+  supplierPriceKes     Decimal?       @db.Decimal(12, 2)
+  printerName          String?
+  turnaroundDays       Int?
+  productionStartDate  DateTime?
+  expectedDeliveryDate DateTime?
+  deliveredAt          DateTime?
+  invoiceId            String?        @unique
+  invoice              Invoice?       @relation(fields: [invoiceId], references: [id])
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Launch
+// ---------------------------------------------------------------------------
+
+enum LaunchRequestStatus {
+  NEW
+  CONTACTED
+  QUOTED
+  CONVERTED
+  CLOSED
+}
+
+// Public lead capture — deliberately NOT tied to a User/BookProject at
+// creation time, since a visitor filling this in may not have an author
+// account yet. Admin links it to a project once contact is made (see
+// projectId below), at which point the existing generic Quotation module
+// (type LAUNCH) handles everything else — no separate launch-quotation
+// system needed.
+model LaunchRequest {
+  id                 String              @id @default(cuid())
+  launchNumber       String              @unique
+  status             LaunchRequestStatus @default(NEW)
+  fullName           String
+  email              String
+  phone              String
+  bookTitle          String
+  proposedLaunchDate DateTime?
+  expectedGuests     Int?
+  location           String?
+  venueSecured       Boolean             @default(false)
+  estimatedBudgetKes Decimal?            @db.Decimal(12, 2)
+  servicesRequested  String[]
+  additionalInfo     String?
+  projectId          String?
+  project            BookProject?        @relation(fields: [projectId], references: [id])
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+enum ChequeStatus {
+  RECEIVED
+  DEPOSITED
+  AWAITING_CLEARANCE
+  CLEARED
+  BOUNCED
+}
+
+// A cheque payment is NEVER treated as settled revenue until CLEARED — see
+// verifyPayment()/advanceCheque() in src/lib/payments.ts.
+model Cheque {
+  id            String       @id @default(cuid())
+  paymentId     String       @unique
+  payment       Payment      @relation(fields: [paymentId], references: [id])
+  chequeNumber  String
+  bank          String
+  drawer        String
+  status        ChequeStatus @default(RECEIVED)
+  receivedDate  DateTime     @default(now())
+  depositDate   DateTime?
+  clearanceDate DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Files
+// ---------------------------------------------------------------------------
+
+enum FileAssetKind {
+  MANUSCRIPT
+  NDA_UNSIGNED
+  NDA_EXECUTED
+  PAYMENT_PROOF
+  EDITED_MANUSCRIPT
+  PROOFREAD_MANUSCRIPT
+  LAYOUT_PROOF
+  COVER_DESIGN
+  RECEIPT
+  PRINT_SAMPLE
+  OTHER
+}
+
+model FileAsset {
+  id               String        @id @default(cuid())
+  projectId        String?
+  project          BookProject?  @relation(fields: [projectId], references: [id])
+  taskId           String?
+  task             Task?         @relation(fields: [taskId], references: [id])
+  paymentId        String?       @unique
+  payment          Payment?      @relation(fields: [paymentId], references: [id])
+  kind             FileAssetKind
+  storageKey       String
+  originalFilename String
+  contentType      String
+  sizeBytes        Int
+  notes            String?
+  uploadedByUserId String?
+  version          Int           @default(1)
+  createdAt        DateTime      @default(now())
+
+  approvals        Approval[]
+}
+
+// ---------------------------------------------------------------------------
+// Production workflow: tasks, approvals, internal notes
+// ---------------------------------------------------------------------------
+
+enum TaskStatus {
+  ASSIGNED
+  ACCEPTED
+  IN_PROGRESS
+  SUBMITTED_FOR_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model Task {
+  id                  String       @id @default(cuid())
+  taskNumber          String       @unique
+  projectId           String
+  project             BookProject  @relation(fields: [projectId], references: [id])
+  stageKey            String
+  taskType            String
+  assignedToUserId    String?
+  assignedToUser      User?        @relation("TaskAssignee", fields: [assignedToUserId], references: [id])
+  assignedByUserId    String?
+  status              TaskStatus   @default(ASSIGNED)
+  priority            TaskPriority @default(NORMAL)
+  instructions        String?
+  dueDate             DateTime?
+  startedAt           DateTime?
+  submittedAt         DateTime?
+  completedAt         DateTime?
+  clientStatusMessage String?
+  changeRequestNote   String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  fileAssets    FileAsset[]
+  internalNotes InternalNote[]
+  approvals     Approval[]
+}
+
+enum ApprovalKind {
+  EDITED_MANUSCRIPT
+  PROOFREADING
+  LAYOUT
+  COVER_DESIGN
+  SAMPLE_DUMMY
+  FINAL_PRINT_READY
+  OTHER
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+model Approval {
+  id                String         @id @default(cuid())
+  projectId         String
+  project           BookProject    @relation(fields: [projectId], references: [id])
+  taskId            String?
+  task              Task?          @relation(fields: [taskId], references: [id])
+  fileAssetId       String
+  fileAsset         FileAsset      @relation(fields: [fileAssetId], references: [id])
+  kind              ApprovalKind
+  status            ApprovalStatus @default(PENDING)
+  requestedByUserId String
+  decidedAt         DateTime?
+  changeRequestNote String?
+  createdAt         DateTime       @default(now())
+}
+
+model InternalNote {
+  id           String      @id @default(cuid())
+  projectId    String
+  project      BookProject @relation(fields: [projectId], references: [id])
+  taskId       String?
+  task         Task?       @relation(fields: [taskId], references: [id])
+  authorUserId String
+  author       User        @relation(fields: [authorUserId], references: [id])
+  body         String
+  createdAt    DateTime    @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Communication & automation
+// ---------------------------------------------------------------------------
+
+// Single project-wide thread visible to the author and anyone assigned to
+// the project (admin, employees, partners). Internal, admin/employee-only
+// discussion belongs in InternalNote instead, never here.
+model Message {
+  id           String      @id @default(cuid())
+  projectId    String
+  project      BookProject @relation(fields: [projectId], references: [id])
+  authorUserId String
+  author       User        @relation(fields: [authorUserId], references: [id])
+  body         String
+  createdAt    DateTime    @default(now())
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  APPROVAL_DECIDED
+  APPROVAL_REQUIRED
+  PAYMENT_VERIFIED
+  QUOTATION_ACCEPTED
+  QUOTATION_DECLINED
+  NDA_EXECUTED
+  LAUNCH_REQUEST_RECEIVED
+  PRINT_SAMPLE_READY
+  MESSAGE_POSTED
+  OTHER
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  type      NotificationType
+  message   String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt])
+}
+
+// Chronological, auto-logged, human-readable event log per project — the
+// "what happened and when" view for both Admin and the Author.
+model ActivityEvent {
+  id        String      @id @default(cuid())
+  projectId String
+  project   BookProject @relation(fields: [projectId], references: [id])
+  message   String
+  createdAt DateTime    @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+// Authors never automatically get an employee's personal phone/email — only
+// what Admin explicitly grants here. See "My Publishing Team" rendering.
+enum ContactShareLevel {
+  PORTAL_ONLY
+  WORK_EMAIL
+  PHONE
+  PHONE_AND_EMAIL
+}
+
+model ContactShareGrant {
+  id             String            @id @default(cuid())
+  employeeUserId String
+  employeeUser   User              @relation("ContactShareEmployee", fields: [employeeUserId], references: [id])
+  authorUserId   String
+  authorUser     User              @relation("ContactShareAuthor", fields: [authorUserId], references: [id])
+  projectId      String
+  project        BookProject       @relation(fields: [projectId], references: [id])
+  level          ContactShareLevel
+  grantedByUserId String
+  grantedAt      DateTime          @default(now())
+  revokedAt      DateTime?
+
+  @@index([employeeUserId, authorUserId, projectId])
+}
+
+// Concurrency-safe document numbering (CP-PRJ-2026-0001, CP-NDA-2026-0001, ...)
+model DocumentSequence {
+  key   String @id // e.g. "PRJ-2026"
+  value Int    @default(0)
+}
+
+model SystemSetting {
+  key         String   @id
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}

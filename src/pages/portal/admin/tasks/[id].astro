@@ -1,0 +1,111 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+import { taskTypeConfig } from '../../../../lib/workflow';
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+
+const task = await prisma.task.findUnique({
+  where: { id },
+  include: {
+    project: true,
+    assignedToUser: { include: { employeeProfile: true, partnerProfile: true } },
+    fileAssets: { orderBy: { version: 'desc' } },
+    internalNotes: { orderBy: { createdAt: 'desc' } },
+  },
+});
+if (!task) return Astro.redirect('/portal/admin');
+
+const config = taskTypeConfig(task.taskType);
+const assigneeName = task.assignedToUser?.employeeProfile?.jobTitle
+  ? `${task.assignedToUser.employeeProfile.jobTitle} (${task.assignedToUser.employeeProfile.staffId})`
+  : task.assignedToUser?.email;
+---
+<PortalLayout title={task.taskNumber} user={user} section="admin">
+  <a class="back-link" href={`/portal/admin/projects/${task.projectId}`}>← {task.project.title}</a>
+  <div class="header-row">
+    <div>
+      <small>{task.taskNumber}</small>
+      <h1>{task.taskType.replaceAll('_', ' ')}</h1>
+      <p class="muted">Assigned to {assigneeName}</p>
+    </div>
+    <span class="status-chip">{task.status.replaceAll('_', ' ')}</span>
+  </div>
+
+  <div class="card">
+    <h2>Deliverables</h2>
+    {task.fileAssets.length === 0 ? (
+      <p class="muted">Nothing submitted yet.</p>
+    ) : (
+      <ul class="file-list">
+        {task.fileAssets.map((f) => (
+          <li>v{f.version} — {f.originalFilename} <a href={`/api/portal/files/download?fileId=${f.id}`} target="_blank">View ↗</a></li>
+        ))}
+      </ul>
+    )}
+  </div>
+
+  <div class="card">
+    <h2>Internal notes <small class="tag">Not visible to client</small></h2>
+    <form method="post" action="/api/portal/admin/tasks/note" class="note-form">
+      <input type="hidden" name="taskId" value={task.id} />
+      <textarea name="body" rows="2" placeholder="Add a note for the team…" required></textarea>
+      <button type="submit">Add note</button>
+    </form>
+    {task.internalNotes.length > 0 && (
+      <ul class="note-list">
+        {task.internalNotes.map((n) => (
+          <li><span class="muted">{n.createdAt.toLocaleString('en-GB')}</span><p>{n.body}</p></li>
+        ))}
+      </ul>
+    )}
+  </div>
+
+  {task.status === 'SUBMITTED_FOR_REVIEW' && (
+    <div class="card review-card">
+      <h2>Review submission</h2>
+      {config?.requiresAuthorApproval && (
+        <p class="muted">Approving this sends it to the author for final sign-off before it counts as complete.</p>
+      )}
+      <div class="review-actions">
+        <form method="post" action="/api/portal/admin/tasks/review">
+          <input type="hidden" name="taskId" value={task.id} />
+          <input type="hidden" name="action" value="approve" />
+          <button type="submit" class="btn-approve">Approve</button>
+        </form>
+        <form method="post" action="/api/portal/admin/tasks/review" class="reject-form">
+          <input type="hidden" name="taskId" value={task.id} />
+          <input type="hidden" name="action" value="request-changes" />
+          <input type="text" name="note" placeholder="What needs to change?" required />
+          <button type="submit" class="btn-reject">Request changes</button>
+        </form>
+      </div>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  .back-link{display:inline-block;margin-bottom:1rem;color:var(--muted);text-decoration:none;font-weight:700;font-size:.82rem}
+  .header-row{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.5rem}
+  .header-row small{color:var(--green);font-weight:800;font-size:.7rem;letter-spacing:.06em}
+  .header-row h1{margin:.2rem 0 0;font-family:var(--display);font-size:1.5rem;text-transform:capitalize}
+  .muted{color:var(--muted);font-size:.82rem}
+  .status-chip{padding:.4rem .8rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.72rem;font-weight:800;white-space:nowrap}
+  .card{max-width:640px;margin-bottom:1.5rem;padding:1.4rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .card h2{margin:0 0 .8rem;font-family:var(--display);font-size:1.05rem;display:flex;align-items:center;gap:.6rem}
+  .tag{background:#fff3cd;color:#8a6800;padding:.2rem .5rem;border-radius:99px;font-size:.6rem;font-weight:800}
+  .file-list{margin:0;padding-left:1.2rem;font-size:.85rem}
+  .file-list a{color:var(--green);font-weight:800;text-decoration:none}
+  .note-form{display:flex;gap:.6rem;margin-bottom:1rem}
+  .note-form textarea{flex:1;padding:.6rem .7rem;border:1px solid var(--line);border-radius:9px;font-size:.82rem;font-family:inherit;resize:vertical}
+  .note-form button{padding:0 1rem;border:0;border-radius:9px;background:var(--deep-green);color:#fff;font-weight:800;cursor:pointer}
+  .note-list{margin:0;padding:0;list-style:none;display:grid;gap:.7rem}
+  .note-list li{padding:.7rem;background:var(--surface-2);border-radius:9px}
+  .note-list p{margin:.2rem 0 0;font-size:.85rem}
+  .review-actions{display:flex;gap:1rem;flex-wrap:wrap;align-items:center}
+  .btn-approve{padding:.8rem 1.2rem;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:800;cursor:pointer}
+  .reject-form{display:flex;gap:.5rem}
+  .reject-form input{padding:.7rem .8rem;border:1px solid var(--line);border-radius:9px;font-size:.82rem;min-width:220px}
+  .btn-reject{padding:.8rem 1rem;border:1px solid var(--line);border-radius:10px;background:transparent;color:#b91c1c;font-weight:800;cursor:pointer}
+</style>

@@ -1,0 +1,44 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../lib/db';
+import { userHasRole } from '../../../lib/auth/session';
+
+const user = Astro.locals.user!;
+const notifications = await prisma.notification.findMany({
+  where: { userId: user.id },
+  orderBy: { createdAt: 'desc' },
+  take: 50,
+});
+
+await prisma.notification.updateMany({
+  where: { userId: user.id, readAt: null },
+  data: { readAt: new Date() },
+});
+
+const section = userHasRole(user, 'ADMIN') || userHasRole(user, 'SUPER_ADMIN') ? 'admin' : userHasRole(user, 'AUTHOR') ? 'author' : 'employee';
+---
+<PortalLayout title="Notifications" user={user} section={section}>
+  <h1>Notifications</h1>
+  {notifications.length === 0 ? (
+    <p class="muted">Nothing yet — you'll see updates here as things happen on your projects.</p>
+  ) : (
+    <div class="notif-list">
+      {notifications.map((n) => (
+        <a class={`notif-row ${n.readAt ? '' : 'unread'}`} href={n.link || '#'}>
+          <span class="notif-message">{n.message}</span>
+          <span class="notif-time">{n.createdAt.toLocaleString('en-GB')}</span>
+        </a>
+      ))}
+    </div>
+  )}
+</PortalLayout>
+<style>
+  h1{margin:0 0 1.5rem;font-family:var(--display);font-size:1.9rem}
+  .muted{color:var(--muted)}
+  .notif-list{display:grid;gap:.6rem;max-width:640px}
+  .notif-row{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1rem 1.2rem;background:var(--surface);border:1px solid var(--line);border-radius:14px;text-decoration:none;color:var(--text)}
+  .notif-row.unread{border-left:4px solid var(--green);background:var(--soft-green)}
+  .notif-message{font-weight:700;font-size:.88rem}
+  .notif-time{color:var(--muted);font-size:.72rem;white-space:nowrap}
+</style>

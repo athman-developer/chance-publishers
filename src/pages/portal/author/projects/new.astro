@@ -1,0 +1,71 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+
+const user = Astro.locals.user!;
+const packages = await prisma.publishingPackage.findMany({
+  where: { status: { in: ['ACTIVE', 'DRAFT'] } },
+  orderBy: { sortOrder: 'asc' },
+});
+const error = Astro.url.searchParams.get('error');
+---
+<PortalLayout title="Start a new book project" user={user} section="author">
+  <div class="form-page">
+    <h1>Tell us about your book</h1>
+    <p class="sub">This creates your Book Project. You'll complete the NDA and choose your final package details with our team next.</p>
+    {error && <div class="form-error">Please fill in the book title.</div>}
+    <form method="post" action="/api/portal/projects/create">
+      <label>Book title<input type="text" name="title" required /></label>
+      <label>Subtitle (optional)<input type="text" name="subtitle" /></label>
+      <div class="row">
+        <label>Genre / category
+          <select name="genre" data-genre-select>
+            <option value="">Not sure yet</option>
+            <option value="Religion & Spirituality">Religion & Spirituality</option>
+            <option value="Leadership & Growth">Leadership & Growth</option>
+            <option value="Education & Learning">Education & Learning</option>
+            <option value="Fiction & Literature">Fiction & Literature</option>
+            <option value="Research & Society">Research & Society</option>
+            <option value="Science, Health & Nature">Science, Health & Nature</option>
+            <option value="__other__">Other (please specify)</option>
+          </select>
+        </label>
+        <label>Language<input type="text" name="language" placeholder="English" /></label>
+      </div>
+      <label data-genre-other hidden>Please specify your genre / category<input type="text" name="genreOther" placeholder="e.g. Poetry, Children's book, Memoir" /></label>
+      <label>Approximate page count<input type="number" name="pageCountApprox" min="1" /></label>
+      <label>Publishing package (optional for now)
+        <select name="packageId">
+          <option value="">Not decided yet</option>
+          {packages.map((p) => (
+            <option value={p.id}>{p.name} — KSh {Number(p.priceKes).toLocaleString()}</option>
+          ))}
+        </select>
+      </label>
+      <label>Notes for our editorial team (optional)<textarea name="notes" rows="3"></textarea></label>
+      <button type="submit" class="btn-primary">Create book project</button>
+    </form>
+  </div>
+</PortalLayout>
+<script>
+  const genreSelect = document.querySelector<HTMLSelectElement>('[data-genre-select]');
+  const genreOtherLabel = document.querySelector<HTMLElement>('[data-genre-other]');
+  genreSelect?.addEventListener('change', () => {
+    const isOther = genreSelect.value === '__other__';
+    if (genreOtherLabel) genreOtherLabel.hidden = !isOther;
+  });
+</script>
+<style>
+  .form-page{max-width:620px;margin:0 auto;padding:2.5rem;background:var(--surface);border:1px solid var(--line);border-radius:20px}
+  .form-page h1{margin:0 0 .4rem;font-family:var(--display);font-size:1.7rem}
+  .sub{margin:0 0 1.5rem;color:var(--muted);line-height:1.6}
+  .form-error{margin-bottom:1.2rem;padding:.8rem 1rem;border-radius:10px;background:#fdecec;color:#b91c1c;font-size:.85rem;font-weight:700}
+  form{display:grid;gap:1.1rem}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800}
+  label[hidden]{display:none}
+  input,select,textarea{padding:.8rem .9rem;border:1px solid var(--line);border-radius:10px;font-size:.95rem;font-family:inherit}
+  .btn-primary{margin-top:.4rem;padding:.9rem;border:0;border-radius:12px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 6px 0 var(--deep-green)}
+  @media(max-width:560px){.row{grid-template-columns:1fr}}
+</style>

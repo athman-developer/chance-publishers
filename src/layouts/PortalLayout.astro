@@ -1,0 +1,143 @@
+---
+import { prisma } from '../lib/db';
+
+interface Props {
+  title: string;
+  user?: App.Locals['user'];
+  section?: 'author' | 'employee' | 'admin';
+}
+const { title, user, section } = Astro.props;
+
+const NAV: Record<string, { href: string; label: string; icon: string; external?: boolean }[]> = {
+  author: [
+    { href: '/portal/author', label: 'Dashboard', icon: '🏠' },
+    { href: '/printing-estimate', label: 'Printing estimate', icon: '🖨️', external: true },
+    { href: '/launches', label: 'Request a launch', icon: '🎉', external: true },
+    { href: '/publish', label: 'Publishing packages', icon: '📦', external: true },
+  ],
+  employee: [
+    { href: '/portal/employee', label: 'Dashboard', icon: '🏠' },
+  ],
+  admin: [
+    { href: '/portal/admin', label: 'Dashboard', icon: '🏠' },
+    { href: '/portal/admin/payments', label: 'Payments', icon: '💳' },
+    { href: '/portal/admin/launches', label: 'Launches', icon: '🎉' },
+    { href: '/portal/admin/reminders', label: 'Reminders', icon: '⏰' },
+    { href: '/portal/admin/reports', label: 'Reports', icon: '📊' },
+  ],
+};
+const navItems = section ? NAV[section] : [];
+const unreadCount = user ? await prisma.notification.count({ where: { userId: user.id, readAt: null } }) : 0;
+
+const ROLE_LABEL: Record<string, string> = {
+  SUPER_ADMIN: 'Super Admin',
+  ADMIN: 'Admin',
+  EMPLOYEE: 'Employee',
+  PARTNER: 'Partner',
+  AUTHOR: 'Author',
+  SUPERVISOR: 'Supervisor',
+};
+const displayName = user?.authorProfile?.fullLegalName || user?.partnerProfile?.contactPerson || user?.email || '';
+const initials = displayName ? displayName.trim().split(/\s+/).map((p: string) => p[0]).slice(0, 2).join('').toUpperCase() : '';
+const primaryRoleKey = user?.roles?.[0]?.role?.key;
+const roleLabel = primaryRoleKey ? (ROLE_LABEL[primaryRoleKey] || primaryRoleKey) : '';
+---
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="icon" href="/favicon.ico" />
+  <title>{title} — Chance Publishers Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class={`portal-shell ${!user ? 'no-sidebar' : ''}`}>
+    {user && (
+      <aside class="portal-sidebar">
+        <a class="portal-logo" href="/">
+          <img src="/Images/brand/chance-logo.png" alt="Chance Publishers" />
+        </a>
+
+        <div class="portal-identity">
+          <span class="portal-avatar">{initials}</span>
+          <div>
+            <strong>{displayName}</strong>
+            {roleLabel && <small>{roleLabel}</small>}
+          </div>
+        </div>
+
+        <nav>
+          {navItems.map((item) => (
+            <a href={item.href} class={Astro.url.pathname === item.href ? 'active' : ''}>
+              <span class="nav-icon">{item.icon}</span>{item.label}
+            </a>
+          ))}
+        </nav>
+
+        <a class="portal-bell" href="/portal/notifications">
+          <span class="nav-icon">🔔</span>Notifications{unreadCount > 0 && <span class="bell-count">{unreadCount}</span>}
+        </a>
+
+        <div class="portal-footer-card">
+          <p class="portal-tagline">Your chance<br />to grow.</p>
+          <a class="portal-help" href="https://wa.me/254758305622?text=Hello%20Chance%20Publishers%2C%20I%20need%20help%20with%20the%20portal.">💬 Need help? Chat with us ↗</a>
+        </div>
+
+        <form method="post" action="/api/portal/logout" class="portal-logout">
+          <button type="submit">Sign out</button>
+        </form>
+      </aside>
+    )}
+    <main class="portal-main">
+      <slot />
+    </main>
+  </div>
+</body>
+</html>
+
+<style is:global>
+  :root{--green:#12ae58;--deep-green:#0c5f34;--yellow:#ffd21c;--yellow-shadow:#d7a900;--surface:#fff;--surface-2:#f5f8f5;--text:#183025;--muted:#718078;--line:#dfe8e1;--soft-green:#e8f9ef;--display:"Plus Jakarta Sans",sans-serif;--head:"Fredoka",sans-serif;--body:"Nunito",sans-serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--surface-2);color:var(--text);font-family:var(--body)}
+  a,button,input,select,textarea{font:inherit}
+  img{display:block;max-width:100%}
+  .portal-shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+  .portal-shell.no-sidebar{grid-template-columns:1fr}
+  .portal-sidebar{display:flex;flex-direction:column;padding:1.5rem 1.2rem;background:linear-gradient(180deg,#073d25,#0c5f34);color:#fff}
+  .portal-logo{display:block;margin-bottom:1.5rem}
+  .portal-logo img{height:44px;filter:brightness(0) invert(1)}
+  .portal-identity{display:flex;align-items:center;gap:.7rem;padding:.9rem;margin-bottom:1.5rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px}
+  .portal-avatar{display:grid;place-items:center;flex-shrink:0;width:38px;height:38px;border-radius:50%;background:var(--yellow);color:#172315;font-weight:900;font-size:.85rem}
+  .portal-identity strong{display:block;font-size:.82rem;color:#fff;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .portal-identity small{color:rgba(255,255,255,.65);font-size:.7rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase}
+  .portal-sidebar nav{display:flex;flex-direction:column;gap:.3rem;flex:1}
+  .portal-sidebar nav a{display:flex;align-items:center;gap:.6rem;padding:.7rem .9rem;border-radius:10px;color:rgba(255,255,255,.82);text-decoration:none;font-weight:700;font-size:.85rem}
+  .portal-sidebar nav a:hover{background:rgba(255,255,255,.08)}
+  .portal-sidebar nav a.active{background:var(--yellow);color:#172315}
+  .nav-icon{font-size:1rem;line-height:1}
+  .portal-bell{position:relative;display:flex;align-items:center;gap:.6rem;padding:.7rem .9rem;margin-bottom:1rem;border-radius:10px;color:rgba(255,255,255,.82);text-decoration:none;font-weight:700;font-size:.85rem}
+  .portal-bell:hover{background:rgba(255,255,255,.08)}
+  .bell-count{padding:.1rem .45rem;border-radius:99px;background:var(--yellow);color:#172315;font-size:.68rem;font-weight:900}
+  .portal-footer-card{margin-bottom:1.2rem;padding:1.1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px}
+  .portal-tagline{margin:0 0 .8rem;font-family:var(--display);font-size:1.05rem;line-height:1.2;color:#fff;letter-spacing:-.01em}
+  .portal-help{display:block;color:var(--yellow);text-decoration:none;font-weight:800;font-size:.78rem}
+  .portal-help:hover{text-decoration:underline}
+  .portal-logout button{width:100%;padding:.7rem;border:1px solid rgba(255,255,255,.25);border-radius:10px;background:transparent;color:#fff;font-weight:700;cursor:pointer}
+  .portal-logout button:hover{background:rgba(255,255,255,.08)}
+  .portal-main{padding:clamp(1.5rem,3vw,3rem)}
+  @media(max-width:820px){
+    .portal-shell{grid-template-columns:1fr}
+    .portal-sidebar{flex-direction:row;align-items:center;padding:1rem;overflow-x:auto}
+    .portal-logo{margin:0 1rem 0 0}
+    .portal-identity,.portal-footer-card{display:none}
+    .portal-sidebar nav{flex-direction:row}
+    .portal-logout{margin-left:auto}
+  }
+</style>

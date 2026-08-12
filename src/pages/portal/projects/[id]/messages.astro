@@ -1,0 +1,118 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+import { userHasRole } from '../../../../lib/auth/session';
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+
+const project = await prisma.bookProject.findUnique({
+  where: { id },
+  include: { author: { include: { authorProfile: true } } },
+});
+if (!project) return Astro.redirect('/portal/author');
+
+const isOwner = project.authorId === user.id;
+const isAdmin = userHasRole(user, 'ADMIN') || userHasRole(user, 'SUPER_ADMIN');
+const hasAssignedTask = isOwner || isAdmin
+  ? false
+  : (await prisma.task.count({ where: { projectId: id, assignedToUserId: user.id } })) > 0;
+const canView = isOwner || isAdmin || hasAssignedTask;
+if (!canView) return Astro.redirect('/portal/author');
+
+const isTeamMember = isAdmin || hasAssignedTask;
+
+const messages = await prisma.message.findMany({
+  where: { projectId: id },
+  include: { author: { include: { authorProfile: true, employeeProfile: true } } },
+  orderBy: { createdAt: 'asc' },
+});
+
+const internalNotes = isTeamMember
+  ? await prisma.internalNote.findMany({
+      where: { projectId: id },
+      include: { author: { include: { employeeProfile: true } } },
+      orderBy: { createdAt: 'desc' },
+    })
+  : [];
+
+function displayName(u: typeof project.author) {
+  return u.authorProfile?.fullLegalName || (u as any).employeeProfile?.jobTitle || u.email;
+}
+
+const section = isAdmin ? 'admin' : isOwner ? 'author' : 'employee';
+const backHref = isAdmin ? `/portal/admin/projects/${id}` : isOwner ? `/portal/author/projects/${id}` : `/portal/employee`;
+---
+<PortalLayout title={`Messages — ${project.title}`} user={user} section={section}>
+  <a class="back-link" href={backHref}>← Back</a>
+  <h1>{project.title}</h1>
+  <p class="muted">Project messages are visible to the author and the assigned publishing team.</p>
+
+  <div class="thread">
+    {messages.length === 0 ? (
+      <p class="muted">No messages yet — start the conversation below.</p>
+    ) : (
+      messages.map((m) => (
+        <div class={`message-bubble ${m.authorUserId === user.id ? 'mine' : ''}`}>
+          <strong>{displayName(m.author)}</strong>
+          <p>{m.body}</p>
+          <small>{m.createdAt.toLocaleString('en-GB')}</small>
+        </div>
+      ))
+    )}
+  </div>
+
+  <form method="post" action="/api/portal/messages/post" class="message-form">
+    <input type="hidden" name="projectId" value={id} />
+    <textarea name="body" rows="3" required placeholder="Write a message…"></textarea>
+    <button type="submit" class="btn-primary">Send</button>
+  </form>
+
+  {isTeamMember && (
+    <div class="internal-block">
+      <h2>Internal notes <span class="internal-badge">INTERNAL — NOT VISIBLE TO CLIENT</span></h2>
+      {internalNotes.length === 0 ? (
+        <p class="muted">No internal notes yet.</p>
+      ) : (
+        <div class="notes-list">
+          {internalNotes.map((n) => (
+            <div class="note-row">
+              <strong>{n.author.employeeProfile?.jobTitle || n.author.email}</strong>
+              <p>{n.body}</p>
+              <small>{n.createdAt.toLocaleString('en-GB')}</small>
+            </div>
+          ))}
+        </div>
+      )}
+      <form method="post" action="/api/portal/internal-notes/post" class="message-form">
+        <input type="hidden" name="projectId" value={id} />
+        <textarea name="body" rows="2" required placeholder="Add an internal note (staff only)…"></textarea>
+        <button type="submit" class="btn-secondary-btn">Add note</button>
+      </form>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  .back-link{display:inline-block;margin-bottom:1rem;color:var(--muted);text-decoration:none;font-weight:700;font-size:.82rem}
+  h1{margin:0 0 .3rem;font-family:var(--display);font-size:1.6rem}
+  .muted{color:var(--muted);font-size:.85rem}
+  .thread{display:grid;gap:.8rem;max-width:640px;margin:1.5rem 0}
+  .message-bubble{padding:1rem 1.2rem;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+  .message-bubble.mine{background:var(--soft-green);border-color:transparent}
+  .message-bubble strong{display:block;font-size:.78rem;color:var(--deep-green);margin-bottom:.3rem}
+  .message-bubble p{margin:0 0 .4rem;font-size:.88rem;line-height:1.5}
+  .message-bubble small{color:var(--muted);font-size:.68rem}
+  .message-form{display:grid;gap:.8rem;max-width:640px}
+  textarea{padding:.9rem;border:1px solid var(--line);border-radius:12px;font-family:inherit;font-size:.9rem;resize:vertical}
+  .btn-primary{padding:.8rem;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;width:max-content;padding-inline:1.4rem}
+  .internal-block{margin-top:2.5rem;padding:1.4rem;background:#fff8e1;border:1px solid #f3d98a;border-radius:16px;max-width:640px}
+  .internal-block h2{margin:0 0 1rem;font-family:var(--display);font-size:1rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+  .internal-badge{padding:.25rem .5rem;border-radius:6px;background:#8a6800;color:#fff;font-size:.6rem;font-weight:900;letter-spacing:.04em}
+  .notes-list{display:grid;gap:.7rem;margin-bottom:1rem}
+  .note-row{padding:.8rem 1rem;background:rgba(255,255,255,.6);border-radius:10px}
+  .note-row strong{display:block;font-size:.76rem;color:#8a6800;margin-bottom:.2rem}
+  .note-row p{margin:0 0 .3rem;font-size:.85rem}
+  .note-row small{color:var(--muted);font-size:.66rem}
+  .btn-secondary-btn{padding:.7rem 1.2rem;border:0;border-radius:10px;background:#8a6800;color:#fff;font-weight:800;cursor:pointer;width:max-content}
+</style>

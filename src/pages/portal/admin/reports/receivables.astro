@@ -1,0 +1,91 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+import { toCsv } from '../../../../lib/csv';
+
+const user = Astro.locals.user!;
+
+const invoices = await prisma.invoice.findMany({
+  where: { status: { in: ['SENT', 'PARTIALLY_PAID'] } },
+  include: { payments: true, project: { include: { author: { include: { authorProfile: true } } } } },
+  orderBy: { createdAt: 'asc' },
+});
+
+const now = Date.now();
+const rows = invoices.map((inv) => {
+  const paid = inv.payments.filter((p) => p.status === 'VERIFIED').reduce((s, p) => s + Number(p.amountKes), 0);
+  const outstanding = Number(inv.amountKes) - paid;
+  const ageDays = Math.floor((now - inv.createdAt.getTime()) / (24 * 60 * 60 * 1000));
+  let bucket = 'Current';
+  if (ageDays > 90) bucket = '90+';
+  else if (ageDays > 60) bucket = '61-90';
+  else if (ageDays > 30) bucket = '31-60';
+  else if (ageDays > 0) bucket = '1-30';
+  return {
+    invoiceNumber: inv.invoiceNumber,
+    project: inv.project.title,
+    author: inv.project.author.authorProfile?.fullLegalName || inv.project.author.email,
+    outstanding,
+    ageDays,
+    bucket,
+  };
+}).filter((r) => r.outstanding > 0);
+
+if (Astro.url.searchParams.get('format') === 'csv') {
+  const csv = toCsv(
+    ['Invoice', 'Project', 'Author', 'Outstanding (KES)', 'Age (days)', 'Bucket'],
+    rows.map((r) => [r.invoiceNumber, r.project, r.author, r.outstanding, r.ageDays, r.bucket]),
+  );
+  return new Response(csv, { headers: { 'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename="receivables-aging.csv"' } });
+}
+
+const buckets = ['Current', '1-30', '31-60', '61-90', '90+'];
+const bucketTotals = Object.fromEntries(buckets.map((b) => [b, rows.filter((r) => r.bucket === b).reduce((s, r) => s + r.outstanding, 0)]));
+---
+<PortalLayout title="Receivables Aging" user={user} section="admin">
+  <div class="header-row"><h1>Receivables Aging</h1><a class="btn-secondary" href="?format=csv">Export CSV ↓</a></div>
+
+  <div class="bucket-grid">
+    {buckets.map((b) => (
+      <div class="bucket"><span>{b}</span><strong>KSh {bucketTotals[b].toLocaleString()}</strong></div>
+    ))}
+  </div>
+
+  {rows.length === 0 ? <p class="muted">No outstanding receivables.</p> : (
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Invoice</th><th>Project</th><th>Author</th><th>Outstanding</th><th>Age</th><th>Bucket</th></tr></thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr>
+              <td>{r.invoiceNumber}</td>
+              <td>{r.project}</td>
+              <td>{r.author}</td>
+              <td>KSh {r.outstanding.toLocaleString()}</td>
+              <td>{r.ageDays}d</td>
+              <td><span class="status-chip">{r.bucket}</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  .header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+  h1{margin:0;font-family:var(--display);font-size:1.9rem}
+  .btn-secondary{padding:.7rem 1.1rem;border-radius:10px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-weight:800;font-size:.82rem}
+  .muted{color:var(--muted)}
+  .bucket-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1rem;margin-bottom:2rem}
+  .bucket{padding:1.1rem;background:var(--surface);border:1px solid var(--line);border-radius:14px;display:grid;gap:.2rem}
+  .bucket span{color:var(--muted);font-size:.7rem;font-weight:700}
+  .bucket strong{font-family:var(--display);font-size:1.2rem;color:var(--deep-green)}
+  .table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  th,td{padding:.9rem 1rem;text-align:left;white-space:nowrap}
+  thead{background:var(--surface-2)}
+  th{color:var(--muted);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase}
+  tbody tr:not(:last-child){border-bottom:1px solid var(--line)}
+  .status-chip{padding:.3rem .6rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.68rem;font-weight:800}
+</style>

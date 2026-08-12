@@ -1,0 +1,69 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+import { toCsv } from '../../../../lib/csv';
+
+const user = Astro.locals.user!;
+
+const projects = await prisma.bookProject.findMany({
+  include: { author: { include: { authorProfile: true } }, package: true },
+  orderBy: { createdAt: 'desc' },
+});
+
+if (Astro.url.searchParams.get('format') === 'csv') {
+  const csv = toCsv(
+    ['Project', 'Author', 'Package', 'Status', 'Stage', 'Progress %', 'Created'],
+    projects.map((p) => [p.projectNumber, p.author.authorProfile?.fullLegalName || p.author.email, p.package?.name || '—', p.status, p.currentStageKey, p.overallProgress, p.createdAt.toISOString().slice(0, 10)]),
+  );
+  return new Response(csv, { headers: { 'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename="pipeline.csv"' } });
+}
+
+const byStatus = projects.reduce<Record<string, number>>((acc, p) => {
+  acc[p.status] = (acc[p.status] || 0) + 1;
+  return acc;
+}, {});
+---
+<PortalLayout title="Publishing Pipeline" user={user} section="admin">
+  <div class="header-row"><h1>Publishing Pipeline</h1><a class="btn-secondary" href="?format=csv">Export CSV ↓</a></div>
+
+  <div class="bucket-grid">
+    {Object.entries(byStatus).map(([status, count]) => (
+      <div class="bucket"><span>{status.replaceAll('_', ' ')}</span><strong>{count}</strong></div>
+    ))}
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Project</th><th>Author</th><th>Package</th><th>Status</th><th>Stage</th><th>Progress</th></tr></thead>
+      <tbody>
+        {projects.map((p) => (
+          <tr>
+            <td>{p.projectNumber} — {p.title}</td>
+            <td>{p.author.authorProfile?.fullLegalName || p.author.email}</td>
+            <td>{p.package?.name || '—'}</td>
+            <td><span class="status-chip">{p.status.replaceAll('_', ' ')}</span></td>
+            <td>{p.currentStageKey.replaceAll('_', ' ')}</td>
+            <td>{p.overallProgress}%</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</PortalLayout>
+<style>
+  .header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+  h1{margin:0;font-family:var(--display);font-size:1.9rem}
+  .btn-secondary{padding:.7rem 1.1rem;border-radius:10px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-weight:800;font-size:.82rem}
+  .bucket-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:2rem}
+  .bucket{padding:1.1rem;background:var(--surface);border:1px solid var(--line);border-radius:14px;display:grid;gap:.2rem}
+  .bucket span{color:var(--muted);font-size:.7rem;font-weight:700}
+  .bucket strong{font-family:var(--display);font-size:1.5rem;color:var(--deep-green)}
+  .table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  th,td{padding:.9rem 1rem;text-align:left;white-space:nowrap}
+  thead{background:var(--surface-2)}
+  th{color:var(--muted);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase}
+  tbody tr:not(:last-child){border-bottom:1px solid var(--line)}
+  .status-chip{padding:.3rem .6rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.68rem;font-weight:800}
+</style>

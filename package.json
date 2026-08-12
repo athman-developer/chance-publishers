@@ -13,8 +13,18 @@
   },
   "dependencies": {
     "@astrojs/netlify": "^7.0.0",
+    "@netlify/blobs": "^10.7.12",
+    "@prisma/client": "^6.19.3",
     "astro": "^6.3.3",
     "axobject-query": "4.0.0",
+    "pdf-lib": "^1.17.1",
+    "prisma": "^6.19.3",
     "resend": "^6.18.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.11"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }

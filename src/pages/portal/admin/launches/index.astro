@@ -1,0 +1,93 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+
+const user = Astro.locals.user!;
+const requests = await prisma.launchRequest.findMany({
+  include: { project: true },
+  orderBy: { createdAt: 'desc' },
+});
+
+const projects = await prisma.bookProject.findMany({
+  select: { id: true, title: true, author: { select: { email: true, authorProfile: { select: { fullLegalName: true } } } } },
+  orderBy: { createdAt: 'desc' },
+});
+---
+<PortalLayout title="Launch requests" user={user} section="admin">
+  <h1>Launch organisation requests</h1>
+  {requests.length === 0 ? (
+    <p class="muted">No launch requests yet.</p>
+  ) : (
+    <div class="lead-grid">
+      {requests.map((r) => (
+        <div class="lead-card">
+          <div class="lead-header">
+            <div>
+              <small>{r.launchNumber}</small>
+              <h2>{r.bookTitle}</h2>
+            </div>
+            <span class="status-chip">{r.status}</span>
+          </div>
+          <dl>
+            <div><dt>Contact</dt><dd>{r.fullName} — {r.email} — {r.phone}</dd></div>
+            {r.proposedLaunchDate && <div><dt>Date</dt><dd>{r.proposedLaunchDate.toLocaleDateString('en-GB')}</dd></div>}
+            {r.expectedGuests && <div><dt>Guests</dt><dd>{r.expectedGuests}</dd></div>}
+            {r.location && <div><dt>Location</dt><dd>{r.location}</dd></div>}
+            <div><dt>Venue secured</dt><dd>{r.venueSecured ? 'Yes' : 'No'}</dd></div>
+            {r.estimatedBudgetKes && <div><dt>Budget</dt><dd>KSh {Number(r.estimatedBudgetKes).toLocaleString()}</dd></div>}
+          </dl>
+          {r.servicesRequested.length > 0 && (
+            <div class="chips">{r.servicesRequested.map((s) => <span>{s}</span>)}</div>
+          )}
+          {r.additionalInfo && <p class="muted">{r.additionalInfo}</p>}
+
+          <form method="post" action="/api/portal/admin/launches/update-status" class="status-form">
+            <input type="hidden" name="requestId" value={r.id} />
+            <select name="status">
+              <option value="NEW" selected={r.status === 'NEW'}>New</option>
+              <option value="CONTACTED" selected={r.status === 'CONTACTED'}>Contacted</option>
+              <option value="QUOTED" selected={r.status === 'QUOTED'}>Quoted</option>
+              <option value="CONVERTED" selected={r.status === 'CONVERTED'}>Converted</option>
+              <option value="CLOSED" selected={r.status === 'CLOSED'}>Closed</option>
+            </select>
+            <button type="submit" class="btn-small">Update status</button>
+          </form>
+
+          {r.project ? (
+            <a class="btn-link" href={`/portal/admin/projects/${r.project.id}`}>Linked to: {r.project.title} →</a>
+          ) : (
+            <form method="post" action="/api/portal/admin/launches/link-project" class="link-form">
+              <input type="hidden" name="requestId" value={r.id} />
+              <select name="projectId" required>
+                <option value="">Link to a book project…</option>
+                {projects.map((p) => <option value={p.id}>{p.title} — {p.author.authorProfile?.fullLegalName || p.author.email}</option>)}
+              </select>
+              <button type="submit" class="btn-small">Link</button>
+            </form>
+          )}
+        </div>
+      ))}
+    </div>
+  )}
+</PortalLayout>
+<style>
+  h1{margin:0 0 1.5rem;font-family:var(--display);font-size:1.9rem}
+  .muted{color:var(--muted)}
+  .lead-grid{display:grid;gap:1.2rem}
+  .lead-card{padding:1.4rem;background:var(--surface);border:1px solid var(--line);border-radius:16px;max-width:640px}
+  .lead-header{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1rem}
+  .lead-header small{color:var(--green);font-weight:800;font-size:.68rem;letter-spacing:.06em}
+  .lead-header h2{margin:.2rem 0 0;font-family:var(--display);font-size:1.2rem}
+  .status-chip{padding:.3rem .6rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.66rem;font-weight:800;white-space:nowrap}
+  dl{display:grid;gap:.4rem;margin:0 0 .8rem}
+  dl>div{display:flex;gap:.6rem;font-size:.82rem}
+  dt{color:var(--muted);flex:0 0 110px}
+  dd{margin:0;font-weight:700}
+  .chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.8rem}
+  .chips span{padding:.3rem .6rem;border-radius:999px;background:var(--surface-2);font-size:.65rem;font-weight:700}
+  .status-form,.link-form{display:flex;gap:.6rem;margin-top:.8rem;flex-wrap:wrap}
+  select{padding:.6rem .7rem;border:1px solid var(--line);border-radius:8px;font-size:.8rem;flex:1;min-width:160px}
+  .btn-small{padding:.6rem .9rem;border:0;border-radius:8px;background:var(--green);color:#fff;font-weight:800;font-size:.78rem;cursor:pointer}
+  .btn-link{display:inline-block;margin-top:.6rem;color:var(--green);font-weight:800;font-size:.82rem;text-decoration:none}
+</style>

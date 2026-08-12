@@ -1,0 +1,114 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../lib/db';
+import { userHasRole } from '../../../lib/auth/session';
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+
+const quotation = await prisma.quotation.findUnique({
+  where: { id },
+  include: { project: { include: { author: { include: { authorProfile: true } } } }, items: true, invoices: true },
+});
+if (!quotation) return Astro.redirect('/portal/author');
+
+const isOwner = quotation.project.authorId === user.id;
+const isAdmin = userHasRole(user, 'ADMIN') || userHasRole(user, 'SUPER_ADMIN');
+if (!isOwner && !isAdmin) return Astro.redirect('/portal/author');
+
+if (isOwner && quotation.status === 'SENT') {
+  await prisma.quotation.update({ where: { id: quotation.id }, data: { status: 'VIEWED', viewedAt: new Date() } });
+  quotation.status = 'VIEWED';
+}
+
+const total = quotation.items.reduce((sum, i) => sum + i.quantity * Number(i.unitPriceKes), 0);
+const section = isAdmin ? 'admin' : 'author';
+---
+<PortalLayout title={quotation.quotationNumber} user={user} section={section}>
+  <a class="back-link" href={isAdmin ? `/portal/admin/projects/${quotation.projectId}` : '/portal/author'}>← Back</a>
+  <div class="header-row">
+    <div>
+      <small>{quotation.quotationNumber} — {quotation.type.replaceAll('_', ' ')}</small>
+      <h1>Quotation for {quotation.project.title}</h1>
+    </div>
+    <span class="status-chip">{quotation.status.replaceAll('_', ' ')}</span>
+  </div>
+
+  <div class="card">
+    <table class="items-table">
+      <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+      <tbody>
+        {quotation.items.map((item) => (
+          <tr>
+            <td>{item.description}</td>
+            <td>{item.quantity}</td>
+            <td>KSh {Number(item.unitPriceKes).toLocaleString()}</td>
+            <td>KSh {(item.quantity * Number(item.unitPriceKes)).toLocaleString()}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    <div class="total-row">Total <strong>KSh {total.toLocaleString()}</strong></div>
+    <p class="muted">Payment terms: {quotation.paymentTerms} · Valid until {quotation.validUntil.toLocaleDateString('en-GB')}</p>
+    {quotation.notes && <p class="muted">{quotation.notes}</p>}
+    <a class="btn-secondary" href={`/api/portal/quotations/download?id=${quotation.id}`} target="_blank">Download PDF ↗</a>
+  </div>
+
+  {isOwner && ['SENT', 'VIEWED'].includes(quotation.status) && (
+    <div class="card decision-card">
+      <h2>Your decision</h2>
+      <div class="decision-actions">
+        <form method="post" action="/api/portal/quotations/decide">
+          <input type="hidden" name="quotationId" value={quotation.id} />
+          <input type="hidden" name="action" value="accept" />
+          <button type="submit" class="btn-approve">Accept quotation</button>
+        </form>
+        <form method="post" action="/api/portal/quotations/decide" class="decline-form">
+          <input type="hidden" name="quotationId" value={quotation.id} />
+          <input type="hidden" name="action" value="decline" />
+          <input type="text" name="declineReason" placeholder="Reason (optional)" />
+          <button type="submit" class="btn-reject">Decline</button>
+        </form>
+      </div>
+    </div>
+  )}
+
+  {quotation.status === 'DECLINED' && quotation.declineReason && (
+    <div class="banner error">Declined: {quotation.declineReason}</div>
+  )}
+
+  {quotation.invoices.length > 0 && (
+    <div class="card">
+      <h2>Invoices from this quotation</h2>
+      <ul class="invoice-list">
+        {quotation.invoices.map((inv) => (
+          <li><a href={`/portal/invoices/${inv.id}`}>{inv.invoiceNumber} — {inv.label}</a> <span class="muted">KSh {Number(inv.amountKes).toLocaleString()} — {inv.status.replaceAll('_', ' ')}</span></li>
+        ))}
+      </ul>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  .back-link{display:inline-block;margin-bottom:1rem;color:var(--muted);text-decoration:none;font-weight:700;font-size:.82rem}
+  .header-row{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.5rem}
+  .header-row small{color:var(--green);font-weight:800;font-size:.7rem;letter-spacing:.06em}
+  .header-row h1{margin:.2rem 0 0;font-family:var(--display);font-size:1.6rem}
+  .status-chip{padding:.4rem .8rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.72rem;font-weight:800;white-space:nowrap}
+  .card{max-width:640px;margin-bottom:1.5rem;padding:1.4rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .card h2{margin:0 0 1rem;font-family:var(--display);font-size:1.05rem}
+  .items-table{width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:1rem}
+  .items-table th{text-align:left;color:var(--muted);font-size:.68rem;text-transform:uppercase;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+  .items-table td{padding:.6rem 0;border-bottom:1px solid var(--line)}
+  .total-row{display:flex;justify-content:flex-end;gap:.6rem;padding:.8rem 0;font-size:.95rem}
+  .muted{color:var(--muted);font-size:.82rem}
+  .btn-secondary{display:inline-block;margin-top:.6rem;padding:.6rem 1rem;border-radius:10px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-weight:800;font-size:.82rem}
+  .decision-actions{display:flex;gap:1rem;flex-wrap:wrap;align-items:center}
+  .btn-approve{padding:.8rem 1.2rem;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:800;cursor:pointer}
+  .decline-form{display:flex;gap:.5rem}
+  .decline-form input{padding:.7rem .8rem;border:1px solid var(--line);border-radius:9px;font-size:.82rem;min-width:180px}
+  .btn-reject{padding:.8rem 1rem;border:1px solid var(--line);border-radius:10px;background:transparent;color:#b91c1c;font-weight:800;cursor:pointer}
+  .banner{padding:1rem 1.2rem;border-radius:12px;font-size:.86rem;font-weight:700;background:#fdecec;color:#b91c1c;max-width:640px}
+  .invoice-list{margin:0;padding:0;list-style:none;display:grid;gap:.6rem}
+  .invoice-list a{color:var(--green);font-weight:800;text-decoration:none}
+</style>

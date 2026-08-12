@@ -1,0 +1,48 @@
+---
+export const prerender = false;
+import { createHash } from 'node:crypto';
+import { prisma } from '../../lib/db';
+
+const token = Astro.url.searchParams.get('token') || '';
+let status: 'ok' | 'invalid' | 'expired' = 'invalid';
+
+if (token) {
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  const record = await prisma.verificationToken.findUnique({ where: { tokenHash } });
+  if (record && record.type === 'EMAIL_VERIFICATION' && !record.usedAt) {
+    if (record.expiresAt < new Date()) {
+      status = 'expired';
+    } else {
+      await prisma.$transaction([
+        prisma.user.update({ where: { id: record.userId }, data: { emailVerified: true } }),
+        prisma.verificationToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
+      ]);
+      status = 'ok';
+    }
+  }
+}
+---
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Verify Email — Chance Publishers Portal</title>
+  <meta name="robots" content="noindex" />
+</head>
+<body style="font-family:system-ui,sans-serif;background:#f7f5ef;display:grid;place-items:center;min-height:100vh;margin:0;">
+  <div style="max-width:420px;padding:2.5rem;background:#fff;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.08);text-align:center;">
+    {status === 'ok' && <>
+      <h1 style="color:#0a5b35;">Email verified</h1>
+      <p>Your email address has been confirmed.</p>
+      <a href="/portal/author" style="display:inline-block;margin-top:1rem;padding:.8rem 1.2rem;border-radius:10px;background:#0a5b35;color:#fff;text-decoration:none;font-weight:700;">Go to your dashboard</a>
+    </>}
+    {status === 'expired' && <>
+      <h1 style="color:#b45309;">Link expired</h1>
+      <p>This verification link has expired. Please request a new one from your dashboard.</p>
+    </>}
+    {status === 'invalid' && <>
+      <h1 style="color:#b91c1c;">Invalid link</h1>
+      <p>This verification link is invalid or has already been used.</p>
+    </>}
+  </div>
+</body>
+</html>

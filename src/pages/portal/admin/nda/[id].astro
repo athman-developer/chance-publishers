@@ -1,0 +1,67 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+
+const nda = await prisma.ndaAgreement.findUnique({
+  where: { id },
+  include: {
+    project: { include: { author: { include: { authorProfile: true } } } },
+    signatures: true,
+    invoice: true,
+  },
+});
+if (!nda) return Astro.redirect('/portal/admin');
+---
+<PortalLayout title={`NDA ${nda.ndaNumber}`} user={user} section="admin">
+  <h1>{nda.ndaNumber}</h1>
+  <p class="muted">{nda.project.title} — {nda.project.author.authorProfile?.fullLegalName || nda.project.author.email}</p>
+  <span class="status-chip">{nda.status.replaceAll('_', ' ')}</span>
+
+  <div class="sig-grid">
+    {nda.signatures.map((s) => (
+      <div class="sig-card">
+        <small>{s.signerRole}</small>
+        <strong>{s.signerName}</strong>
+        <span class="muted">{s.method} — {s.signedAt.toLocaleString('en-GB')}</span>
+      </div>
+    ))}
+  </div>
+
+  {nda.generatedPdfKey && (
+    <a class="btn-secondary" href={`/api/portal/nda/download?ndaId=${nda.id}&type=unsigned`} target="_blank">View unsigned NDA ↗</a>
+  )}
+  {nda.executedPdfKey && (
+    <a class="btn-secondary" href={`/api/portal/nda/download?ndaId=${nda.id}&type=executed`} target="_blank">View executed NDA ↗</a>
+  )}
+
+  {nda.status === 'AWAITING_PUBLISHER_SIGNATURE' && (
+    <div class="card">
+      <h2>Countersign as Chance Publishers</h2>
+      <p class="muted">This generates the final executed NDA and unlocks manuscript submission for the author.</p>
+      <form method="post" action="/api/portal/admin/countersign">
+        <input type="hidden" name="ndaId" value={nda.id} />
+        <label>Signatory name<input type="text" name="signerName" value="Chance Publishers Limited" required /></label>
+        <button type="submit" class="btn-primary">Countersign &amp; execute NDA</button>
+      </form>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  h1{margin:0 0 .3rem;font-family:var(--display);font-size:1.7rem}
+  .muted{color:var(--muted);font-size:.85rem}
+  .status-chip{display:inline-block;margin:.8rem 0 1.5rem;padding:.4rem .8rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.72rem;font-weight:800}
+  .sig-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem}
+  .sig-card{padding:1rem;background:var(--surface);border:1px solid var(--line);border-radius:12px;display:grid;gap:.2rem}
+  .sig-card small{color:var(--green);font-weight:800;font-size:.65rem;letter-spacing:.06em}
+  .btn-secondary{display:inline-block;margin:0 .6rem .6rem 0;padding:.6rem .9rem;border-radius:10px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-weight:800;font-size:.82rem}
+  .card{max-width:480px;margin-top:1.5rem;padding:1.5rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .card h2{margin:0 0 .6rem;font-family:var(--display);font-size:1.1rem}
+  .card form{display:grid;gap:1rem;margin-top:1rem}
+  label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800}
+  input{padding:.8rem .9rem;border:1px solid var(--line);border-radius:10px;font-size:.9rem}
+  .btn-primary{padding:.9rem;border:0;border-radius:12px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 6px 0 var(--deep-green)}
+</style>

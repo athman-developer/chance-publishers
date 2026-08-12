@@ -1,0 +1,66 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+import { toCsv } from '../../../../lib/csv';
+
+const user = Astro.locals.user!;
+
+const packages = await prisma.publishingPackage.findMany({
+  include: {
+    bookProjects: {
+      include: { invoices: { include: { payments: true } } },
+    },
+  },
+  orderBy: { sortOrder: 'asc' },
+});
+
+const rows = packages.map((pkg) => {
+  const revenue = pkg.bookProjects.reduce(
+    (sum, p) => sum + p.invoices.reduce(
+      (s, inv) => s + inv.payments.filter((pay) => pay.status === 'VERIFIED').reduce((ss, pay) => ss + Number(pay.amountKes), 0),
+      0,
+    ),
+    0,
+  );
+  return { name: pkg.name, priceKes: Number(pkg.priceKes), projectCount: pkg.bookProjects.length, revenue };
+});
+
+if (Astro.url.searchParams.get('format') === 'csv') {
+  const csv = toCsv(
+    ['Package', 'List Price (KES)', 'Projects', 'Revenue Collected (KES)'],
+    rows.map((r) => [r.name, r.priceKes, r.projectCount, r.revenue]),
+  );
+  return new Response(csv, { headers: { 'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename="package-performance.csv"' } });
+}
+---
+<PortalLayout title="Package Performance" user={user} section="admin">
+  <div class="header-row"><h1>Package Performance</h1><a class="btn-secondary" href="?format=csv">Export CSV ↓</a></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Package</th><th>List Price</th><th>Projects</th><th>Revenue Collected</th></tr></thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr>
+            <td>{r.name}</td>
+            <td>KSh {r.priceKes.toLocaleString()}</td>
+            <td>{r.projectCount}</td>
+            <td>KSh {r.revenue.toLocaleString()}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</PortalLayout>
+<style>
+  .header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+  h1{margin:0;font-family:var(--display);font-size:1.9rem}
+  .btn-secondary{padding:.7rem 1.1rem;border-radius:10px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-weight:800;font-size:.82rem}
+  .table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  th,td{padding:.9rem 1rem;text-align:left;white-space:nowrap}
+  thead{background:var(--surface-2)}
+  th{color:var(--muted);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase}
+  tbody tr:not(:last-child){border-bottom:1px solid var(--line)}
+</style>

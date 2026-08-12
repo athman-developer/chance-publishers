@@ -1,0 +1,71 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+import { toCsv } from '../../../../lib/csv';
+
+const user = Astro.locals.user!;
+
+const employees = await prisma.user.findMany({
+  where: { roles: { some: { role: { key: { in: ['EMPLOYEE', 'PARTNER'] } } } } },
+  include: { employeeProfile: true, partnerProfile: true, assignedTasks: true },
+});
+
+const now = new Date();
+const rows = employees.map((e) => {
+  const active = e.assignedTasks.filter((t) => !['COMPLETED', 'CANCELLED'].includes(t.status));
+  const overdue = active.filter((t) => t.dueDate && t.dueDate < now);
+  const completed = e.assignedTasks.filter((t) => t.status === 'COMPLETED');
+  return {
+    name: e.employeeProfile?.jobTitle || e.partnerProfile?.companyName || e.email,
+    staffId: e.employeeProfile?.staffId || '—',
+    active: active.length,
+    overdue: overdue.length,
+    completed: completed.length,
+  };
+}).sort((a, b) => b.active - a.active);
+
+if (Astro.url.searchParams.get('format') === 'csv') {
+  const csv = toCsv(
+    ['Name', 'Staff ID', 'Active Tasks', 'Overdue', 'Completed'],
+    rows.map((r) => [r.name, r.staffId, r.active, r.overdue, r.completed]),
+  );
+  return new Response(csv, { headers: { 'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename="employee-workload.csv"' } });
+}
+---
+<PortalLayout title="Employee Workload" user={user} section="admin">
+  <div class="header-row"><h1>Employee Workload</h1><a class="btn-secondary" href="?format=csv">Export CSV ↓</a></div>
+
+  {rows.length === 0 ? <p class="muted">No employees yet.</p> : (
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Staff ID</th><th>Active</th><th>Overdue</th><th>Completed</th></tr></thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr>
+              <td>{r.name}</td>
+              <td>{r.staffId}</td>
+              <td>{r.active}</td>
+              <td>{r.overdue > 0 ? <span class="status-chip warn">{r.overdue}</span> : '0'}</td>
+              <td>{r.completed}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  .header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+  h1{margin:0;font-family:var(--display);font-size:1.9rem}
+  .btn-secondary{padding:.7rem 1.1rem;border-radius:10px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-weight:800;font-size:.82rem}
+  .muted{color:var(--muted)}
+  .table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  th,td{padding:.9rem 1rem;text-align:left;white-space:nowrap}
+  thead{background:var(--surface-2)}
+  th{color:var(--muted);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase}
+  tbody tr:not(:last-child){border-bottom:1px solid var(--line)}
+  .status-chip{padding:.3rem .6rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.68rem;font-weight:800}
+  .status-chip.warn{background:#fdecec;color:#b91c1c}
+</style>

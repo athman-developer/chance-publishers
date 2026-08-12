@@ -1,0 +1,82 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+
+const user = Astro.locals.user!;
+const now = new Date();
+const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+const expiringQuotations = await prisma.quotation.findMany({
+  where: { status: { in: ['SENT', 'VIEWED'] }, validUntil: { lte: in3Days } },
+  include: { project: true },
+  orderBy: { validUntil: 'asc' },
+});
+
+const overdueInvoices = await prisma.invoice.findMany({
+  where: { status: { in: ['SENT', 'PARTIALLY_PAID'] }, createdAt: { lte: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000) } },
+  include: { project: true },
+  orderBy: { createdAt: 'asc' },
+});
+
+const overduePrintJobs = await prisma.printJob.findMany({
+  where: { expectedDeliveryDate: { lte: now }, status: { notIn: ['DELIVERED', 'COMPLETED'] } },
+  include: { project: true },
+  orderBy: { expectedDeliveryDate: 'asc' },
+});
+
+const overdueTasks = await prisma.task.findMany({
+  where: { dueDate: { lte: now }, status: { notIn: ['COMPLETED', 'CANCELLED'] } },
+  include: { project: true, assignedToUser: { include: { employeeProfile: true } } },
+  orderBy: { dueDate: 'asc' },
+});
+---
+<PortalLayout title="Reminders" user={user} section="admin">
+  <h1>Reminders</h1>
+  <p class="muted">Computed live each time this page loads. A future phase can wire these into scheduled email/SMS pushes via Netlify Scheduled Functions once deployed.</p>
+
+  <div class="reminder-section">
+    <h2>Quotations expiring soon</h2>
+    {expiringQuotations.length === 0 ? <p class="muted">None.</p> : (
+      <ul>{expiringQuotations.map((q) => (
+        <li><a href={`/portal/quotations/${q.id}`}>{q.quotationNumber}</a> — {q.project.title} — valid until {q.validUntil.toLocaleDateString('en-GB')}</li>
+      ))}</ul>
+    )}
+  </div>
+
+  <div class="reminder-section">
+    <h2>Invoices outstanding 14+ days</h2>
+    {overdueInvoices.length === 0 ? <p class="muted">None.</p> : (
+      <ul>{overdueInvoices.map((inv) => (
+        <li><a href={`/portal/invoices/${inv.id}`}>{inv.invoiceNumber}</a> — {inv.project.title} — KSh {Number(inv.amountKes).toLocaleString()} since {inv.createdAt.toLocaleDateString('en-GB')}</li>
+      ))}</ul>
+    )}
+  </div>
+
+  <div class="reminder-section">
+    <h2>Print jobs overdue</h2>
+    {overduePrintJobs.length === 0 ? <p class="muted">None.</p> : (
+      <ul>{overduePrintJobs.map((pj) => (
+        <li><a href={`/portal/print-jobs/${pj.id}`}>{pj.printJobNumber}</a> — {pj.project.title} — expected {pj.expectedDeliveryDate?.toLocaleDateString('en-GB')}</li>
+      ))}</ul>
+    )}
+  </div>
+
+  <div class="reminder-section">
+    <h2>Employee tasks overdue</h2>
+    {overdueTasks.length === 0 ? <p class="muted">None.</p> : (
+      <ul>{overdueTasks.map((t) => (
+        <li><a href={`/portal/admin/tasks/${t.id}`}>{t.taskNumber}</a> — {t.project.title} — {t.assignedToUser?.employeeProfile?.jobTitle || t.assignedToUser?.email} — due {t.dueDate?.toLocaleDateString('en-GB')}</li>
+      ))}</ul>
+    )}
+  </div>
+</PortalLayout>
+<style>
+  h1{margin:0 0 .4rem;font-family:var(--display);font-size:1.9rem}
+  .muted{color:var(--muted);font-size:.85rem;margin-bottom:1.5rem}
+  .reminder-section{margin-bottom:2rem;max-width:720px}
+  .reminder-section h2{margin:0 0 .8rem;font-family:var(--display);font-size:1.05rem}
+  ul{margin:0;padding:0;list-style:none;display:grid;gap:.6rem}
+  li{padding:.8rem 1rem;background:var(--surface);border:1px solid var(--line);border-radius:10px;font-size:.85rem}
+  li a{color:var(--green);font-weight:800;text-decoration:none;margin-right:.4rem}
+</style>

@@ -1,0 +1,81 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+import { toCsv } from '../../../../lib/csv';
+
+const user = Astro.locals.user!;
+
+const projects = await prisma.bookProject.findMany({
+  include: {
+    invoices: { include: { payments: true } },
+    printJobs: true,
+  },
+  orderBy: { createdAt: 'desc' },
+});
+
+const rows = projects.map((p) => {
+  const revenue = p.invoices.reduce(
+    (sum, inv) => sum + inv.payments.filter((pay) => pay.status === 'VERIFIED').reduce((s, pay) => s + Number(pay.amountKes), 0),
+    0,
+  );
+  const supplierCost = p.printJobs.reduce((sum, pj) => sum + (pj.supplierPriceKes ? Number(pj.supplierPriceKes) : 0), 0);
+  return { title: p.title, projectNumber: p.projectNumber, revenue, supplierCost, margin: revenue - supplierCost };
+}).filter((r) => r.revenue > 0 || r.supplierCost > 0);
+
+if (Astro.url.searchParams.get('format') === 'csv') {
+  const csv = toCsv(
+    ['Project', 'Revenue (KES)', 'Supplier Cost (KES)', 'Margin (KES)'],
+    rows.map((r) => [r.projectNumber, r.revenue, r.supplierCost, r.margin]),
+  );
+  return new Response(csv, { headers: { 'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename="project-profitability.csv"' } });
+}
+
+const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
+const totalCost = rows.reduce((s, r) => s + r.supplierCost, 0);
+---
+<PortalLayout title="Project Profitability" user={user} section="admin">
+  <div class="header-row"><h1>Project Profitability</h1><a class="btn-secondary" href="?format=csv">Export CSV ↓</a></div>
+  <p class="muted">Admin-only. Supplier costs and margins are never shown to authors.</p>
+
+  <div class="bucket-grid">
+    <div class="bucket"><span>Total revenue</span><strong>KSh {totalRevenue.toLocaleString()}</strong></div>
+    <div class="bucket"><span>Total supplier cost</span><strong>KSh {totalCost.toLocaleString()}</strong></div>
+    <div class="bucket total"><span>Gross margin</span><strong>KSh {(totalRevenue - totalCost).toLocaleString()}</strong></div>
+  </div>
+
+  {rows.length === 0 ? <p class="muted">No revenue recorded yet.</p> : (
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Project</th><th>Revenue</th><th>Supplier Cost</th><th>Margin</th></tr></thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr>
+              <td>{r.projectNumber} — {r.title}</td>
+              <td>KSh {r.revenue.toLocaleString()}</td>
+              <td>KSh {r.supplierCost.toLocaleString()}</td>
+              <td><strong>KSh {r.margin.toLocaleString()}</strong></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  .header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;flex-wrap:wrap;gap:1rem}
+  h1{margin:0;font-family:var(--display);font-size:1.9rem}
+  .btn-secondary{padding:.7rem 1.1rem;border-radius:10px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-weight:800;font-size:.82rem}
+  .muted{color:var(--muted);margin-bottom:1.5rem}
+  .bucket-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:2rem}
+  .bucket{padding:1.1rem;background:var(--surface);border:1px solid var(--line);border-radius:14px;display:grid;gap:.2rem}
+  .bucket.total{background:var(--soft-green)}
+  .bucket span{color:var(--muted);font-size:.7rem;font-weight:700}
+  .bucket strong{font-family:var(--display);font-size:1.3rem;color:var(--deep-green)}
+  .table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  th,td{padding:.9rem 1rem;text-align:left;white-space:nowrap}
+  thead{background:var(--surface-2)}
+  th{color:var(--muted);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase}
+  tbody tr:not(:last-child){border-bottom:1px solid var(--line)}
+</style>

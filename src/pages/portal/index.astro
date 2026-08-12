@@ -1,0 +1,6 @@
+---
+export const prerender = false;
+// Middleware redirects authenticated users to their role home and
+// unauthenticated users to /portal/login before this ever renders.
+return Astro.redirect('/portal/login');
+---
