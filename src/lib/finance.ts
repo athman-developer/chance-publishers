@@ -28,7 +28,7 @@ export function quotationTotal(items: ParsedLineItem[]): number {
   return items.reduce((sum, i) => sum + i.quantity * i.unitPriceKes, 0);
 }
 
-const TERM_SPLITS: Record<string, { label: string; percent: number }[]> = {
+export const TERM_SPLITS: Record<string, { label: string; percent: number }[]> = {
   '70/30': [
     { label: 'Deposit (70%)', percent: 70 },
     { label: 'Balance (30%)', percent: 30 },
@@ -88,5 +88,44 @@ export async function convertQuotationToInvoices(quotationId: string) {
   }
 
   await prisma.quotation.update({ where: { id: quotationId }, data: { status: 'CONVERTED_TO_INVOICE', decidedAt: new Date() } });
+  return createdInvoices;
+}
+
+// Publishing package prices are fixed (not negotiated), so unlike custom
+// printing/launch work there's no need to wait for an admin-built quotation
+// — invoice the package deposit/balance the moment the author starts their
+// NDA, using the site's default payment terms (e.g. 70/30). Called once per
+// project; a no-op if the project has no package selected or invoices
+// already exist (e.g. NDA restarted).
+export async function createPackageInvoices(projectId: string) {
+  const project = await prisma.bookProject.findUniqueOrThrow({ where: { id: projectId }, include: { package: true } });
+  if (!project.package) return [];
+
+  const existing = await prisma.invoice.findFirst({
+    where: { projectId, type: 'PUBLISHING', quotationId: null, ndaAgreementId: null },
+  });
+  if (existing) return [];
+
+  const termsSetting = await prisma.systemSetting.findUnique({ where: { key: 'DEFAULT_CLIENT_PAYMENT_TERMS' } });
+  const splits = TERM_SPLITS[termsSetting?.value || '70/30'] || TERM_SPLITS['70/30'];
+  const total = Number(project.package.priceKes);
+
+  const createdInvoices = [];
+  for (const split of splits) {
+    const invoiceNumber = await nextDocumentNumber('INV');
+    const amount = Math.round((total * split.percent) / 100 * 100) / 100;
+    const invoice = await prisma.invoice.create({
+      data: {
+        invoiceNumber,
+        projectId,
+        type: 'PUBLISHING',
+        status: 'SENT',
+        amountKes: amount,
+        label: `${project.package.name} package — ${split.label}`,
+        description: `${project.package.name} publishing package`,
+      },
+    });
+    createdInvoices.push(invoice);
+  }
   return createdInvoices;
 }

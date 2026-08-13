@@ -240,7 +240,7 @@ const activity = await prisma.activityEvent.findMany({ where: { projectId: id },
 
     {manuscriptError === 'nda-not-executed' && <div class="banner error">Please complete your NDA before submitting a manuscript.</div>}
     {manuscriptError === 'unsupported-file-type' && <div class="banner error">That file type isn't supported. Please upload a PDF, Word, RTF or ODT file.</div>}
-    {manuscriptError === 'file-too-large' && <div class="banner error">That file is too large (25MB limit).</div>}
+    {manuscriptError === 'file-too-large' && <div class="banner error">That file is too large (4MB limit). Try compressing it or splitting it into parts, or email it to us directly.</div>}
     {manuscriptSubmitted && <div class="banner ok">Manuscript submitted — thank you! Our editorial team will review it and get back to you.</div>}
 
     {nda?.status === 'EXECUTED' && (
@@ -253,9 +253,9 @@ const activity = await prisma.activityEvent.findMany({ where: { projectId: id },
             ))}
           </ul>
         )}
-        <form method="post" action="/api/portal/manuscript/upload" enctype="multipart/form-data">
+        <form method="post" action="/api/portal/manuscript/upload" enctype="multipart/form-data" data-max-upload-form>
           <input type="hidden" name="projectId" value={id} />
-          <label>{project.fileAssets.length > 0 ? 'Upload a new version' : 'Upload your manuscript'}<input type="file" name="manuscript" accept=".pdf,.doc,.docx,.rtf,.odt" required /></label>
+          <label>{project.fileAssets.length > 0 ? 'Upload a new version' : 'Upload your manuscript'}<input type="file" name="manuscript" accept=".pdf,.doc,.docx,.rtf,.odt" required /><small class="muted">Max 4MB — compress or split larger files, or email us directly.</small></label>
           <button type="submit" class="btn-primary">Submit manuscript</button>
         </form>
       </div>
@@ -350,4 +350,21 @@ const activity = await prisma.activityEvent.findMany({ where: { projectId: id },
   .timeline li{display:flex;flex-direction:column;gap:.15rem;padding-left:1rem;border-left:2px solid var(--soft-green)}
   .timeline small{color:var(--muted);font-size:.68rem;font-weight:700}
   .timeline span{font-size:.85rem}
+  .manuscript-block label small.muted{font-weight:600;font-size:.72rem}
 </style>
+<script>
+  // Netlify Functions reject request bodies over ~6MB before our server code
+  // ever runs, so a server-side error message can't be shown for oversized
+  // files — catch it client-side instead, before the request is even sent.
+  const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+  document.querySelectorAll<HTMLFormElement>('[data-max-upload-form]').forEach((form) => {
+    form.addEventListener('submit', (e) => {
+      const fileInput = form.querySelector<HTMLInputElement>('input[type="file"]');
+      const file = fileInput?.files?.[0];
+      if (file && file.size > MAX_UPLOAD_BYTES) {
+        e.preventDefault();
+        alert(`That file is ${(file.size / (1024 * 1024)).toFixed(1)}MB, which is over the 4MB limit. Please compress it or split it into parts, or email it to us directly.`);
+      }
+    });
+  });
+</script>

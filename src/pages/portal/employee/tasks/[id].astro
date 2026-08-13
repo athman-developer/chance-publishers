@@ -80,9 +80,9 @@ const error = Astro.url.searchParams.get('error');
   )}
 
   {(task.status === 'ACCEPTED' || task.status === 'IN_PROGRESS' || task.status === 'CHANGES_REQUESTED') && (
-    <form method="post" action="/api/portal/employee/tasks/submit" enctype="multipart/form-data" class="action-card">
+    <form method="post" action="/api/portal/employee/tasks/submit" enctype="multipart/form-data" class="action-card" data-max-upload-form>
       <input type="hidden" name="taskId" value={task.id} />
-      <label>Upload your {config?.label.toLowerCase() || 'deliverable'}<input type="file" name="deliverable" required /></label>
+      <label>Upload your {config?.label.toLowerCase() || 'deliverable'}<input type="file" name="deliverable" required /><small class="muted">Max 4MB</small></label>
       <button type="submit" class="btn-primary">Submit for review</button>
     </form>
   )}
@@ -116,3 +116,18 @@ const error = Astro.url.searchParams.get('error');
   .btn-primary{padding:.85rem;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 5px 0 var(--deep-green)}
   @media(max-width:700px){.grid-2{grid-template-columns:1fr}}
 </style>
+<script>
+  // Netlify Functions reject request bodies over ~6MB before our server code
+  // ever runs, so catch oversized files client-side instead.
+  const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+  document.querySelectorAll<HTMLFormElement>('[data-max-upload-form]').forEach((form) => {
+    form.addEventListener('submit', (e) => {
+      const fileInput = form.querySelector<HTMLInputElement>('input[type="file"]');
+      const file = fileInput?.files?.[0];
+      if (file && file.size > MAX_UPLOAD_BYTES) {
+        e.preventDefault();
+        alert(`That file is ${(file.size / (1024 * 1024)).toFixed(1)}MB, which is over the 4MB limit. Please compress it or split it into parts.`);
+      }
+    });
+  });
+</script>

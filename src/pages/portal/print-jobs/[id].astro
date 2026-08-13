@@ -142,9 +142,9 @@ const nextStages = nextStageOptions(printJob.status);
     <div class="card">
       <h2>Advance stage</h2>
       {printJob.status === 'PRODUCTION_STARTED' && (
-        <form method="post" action="/api/portal/admin/print-jobs/upload-sample" enctype="multipart/form-data">
+        <form method="post" action="/api/portal/admin/print-jobs/upload-sample" enctype="multipart/form-data" data-max-upload-form>
           <input type="hidden" name="printJobId" value={printJob.id} />
-          <label>Upload sample photo/PDF<input type="file" name="sample" accept=".pdf,.jpg,.jpeg,.png" required /></label>
+          <label>Upload sample photo/PDF<input type="file" name="sample" accept=".pdf,.jpg,.jpeg,.png" required /><small class="muted">Max 4MB</small></label>
           <button type="submit" class="btn-primary">Upload sample for author approval</button>
         </form>
       )}
@@ -189,3 +189,18 @@ const nextStages = nextStageOptions(printJob.status);
   .btn-changes{padding:.6rem .9rem;border:1px solid var(--line);border-radius:8px;background:#fff;color:#b91c1c;font-weight:800;font-size:.78rem;cursor:pointer;margin:0}
   .approval-actions input[type="text"]{padding:.55rem .7rem;font-size:.78rem;min-width:160px}
 </style>
+<script>
+  // Netlify Functions reject request bodies over ~6MB before our server code
+  // ever runs, so catch oversized files client-side instead.
+  const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+  document.querySelectorAll<HTMLFormElement>('[data-max-upload-form]').forEach((form) => {
+    form.addEventListener('submit', (e) => {
+      const fileInput = form.querySelector<HTMLInputElement>('input[type="file"]');
+      const file = fileInput?.files?.[0];
+      if (file && file.size > MAX_UPLOAD_BYTES) {
+        e.preventDefault();
+        alert(`That file is ${(file.size / (1024 * 1024)).toFixed(1)}MB, which is over the 4MB limit. Please compress it or split it into parts.`);
+      }
+    });
+  });
+</script>

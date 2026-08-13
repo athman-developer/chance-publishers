@@ -5,15 +5,7 @@ import { randomBytes } from 'node:crypto';
 import { prisma } from '../../../../lib/db';
 import { getStorage } from '../../../../lib/storage';
 import { notifyAdmins, logActivity } from '../../../../lib/notify';
-
-const ALLOWED_TYPES = new Set([
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/rtf',
-  'application/vnd.oasis.opendocument.text',
-]);
-const MAX_SIZE_BYTES = 25 * 1024 * 1024; // 25MB
+import { validateUpload, DOCUMENT_TYPES } from '../../../../lib/upload-validation';
 
 export const POST: APIRoute = async ({ request, locals, redirect }) => {
   const user = locals.user;
@@ -21,7 +13,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
 
   const data = await request.formData();
   const projectId = String(data.get('projectId') || '');
-  const file = data.get('manuscript');
+  const rawFile = data.get('manuscript');
 
   const project = await prisma.bookProject.findUnique({
     where: { id: projectId },
@@ -31,15 +23,11 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   if (project.ndaAgreement?.status !== 'EXECUTED') {
     return redirect(`/portal/author/projects/${projectId}?error=nda-not-executed`);
   }
-  if (!(file instanceof File) || file.size === 0) {
-    return redirect(`/portal/author/projects/${projectId}?error=no-file`);
+  const validated = validateUpload(rawFile, DOCUMENT_TYPES);
+  if (!validated.ok) {
+    return redirect(`/portal/author/projects/${projectId}?error=${validated.error}`);
   }
-  if (file.size > MAX_SIZE_BYTES) {
-    return redirect(`/portal/author/projects/${projectId}?error=file-too-large`);
-  }
-  if (!ALLOWED_TYPES.has(file.type)) {
-    return redirect(`/portal/author/projects/${projectId}?error=unsupported-file-type`);
-  }
+  const file = validated.file;
 
   const storage = await getStorage();
   const buffer = Buffer.from(await file.arrayBuffer());

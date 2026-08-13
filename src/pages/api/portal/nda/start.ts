@@ -3,6 +3,7 @@ export const prerender = false;
 import type { APIRoute } from 'astro';
 import { prisma } from '../../../../lib/db';
 import { nextDocumentNumber } from '../../../../lib/documents';
+import { createPackageInvoices } from '../../../../lib/finance';
 
 export const POST: APIRoute = async ({ request, locals, redirect }) => {
   const user = locals.user;
@@ -66,6 +67,8 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       },
     });
   });
+
+  await createPackageInvoices(projectId);
 
   // Also save the ID/passport and address back onto the author's profile for reuse.
   await prisma.authorProfile.update({

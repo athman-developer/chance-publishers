@@ -84,7 +84,10 @@
       "Bash(curl -s -b /tmp/cp_admin_cookies.txt -X POST http://localhost:4321/api/portal/admin/tasks/review -H 'Origin: http://localhost:4321' -F taskId=cmsoti68h001giq4j37d09w5c -F action=approve -o /dev/null -w 'status: %{http_code}\\\\n' -D -)",
       "Bash(curl -s -c /tmp/cp_verify_cookies.txt -X POST http://localhost:4321/api/portal/login -H 'Origin: http://localhost:4321' -F email=chancepublishersltd@gmail.com -F 'password=Publish3328$' -o /dev/null -w 'login status: %{http_code}\\\\n')",
       "Bash(curl -s -b /tmp/cp_verify_cookies.txt http://localhost:4321/portal/admin -o /dev/null -w \"admin page status: %{http_code}\\\\n\")",
-      "Bash(npx netlify *)"
+      "Bash(npx netlify *)",
+      "Bash(grep -i \"\\\\.env$\\\\|\\\\.env\\\\.\")",
+      "Bash(dig +short chancepublishers.com)",
+      "Bash(curl -sI https://chancepublishers.com --max-time 10)"
     ]
   }
 }

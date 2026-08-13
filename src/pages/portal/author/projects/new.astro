@@ -14,7 +14,8 @@ const error = Astro.url.searchParams.get('error');
   <div class="form-page">
     <h1>Tell us about your book</h1>
     <p class="sub">This creates your Book Project. You'll complete the NDA and choose your final package details with our team next.</p>
-    {error && <div class="form-error">Please fill in the book title.</div>}
+    {error === 'missing-package' && <div class="form-error">Please choose a publishing package.</div>}
+    {error && error !== 'missing-package' && <div class="form-error">Please fill in the book title.</div>}
     <form method="post" action="/api/portal/projects/create">
       <label>Book title<input type="text" name="title" required /></label>
       <label>Subtitle (optional)<input type="text" name="subtitle" /></label>
@@ -35,13 +36,14 @@ const error = Astro.url.searchParams.get('error');
       </div>
       <label data-genre-other hidden>Please specify your genre / category<input type="text" name="genreOther" placeholder="e.g. Poetry, Children's book, Memoir" /></label>
       <label>Approximate page count<input type="number" name="pageCountApprox" min="1" /></label>
-      <label>Publishing package (optional for now)
-        <select name="packageId">
-          <option value="">Not decided yet</option>
+      <label>Publishing package
+        <select name="packageId" required>
+          <option value="">Choose a package…</option>
           {packages.map((p) => (
             <option value={p.id}>{p.name} — KSh {Number(p.priceKes).toLocaleString()}</option>
           ))}
         </select>
+        <small class="muted">You'll pay a KSh 1,000 NDA fee plus a 70% deposit on your chosen package right after this step.</small>
       </label>
       <label>Notes for our editorial team (optional)<textarea name="notes" rows="3"></textarea></label>
       <button type="submit" class="btn-primary">Create book project</button>
@@ -60,6 +62,7 @@ const error = Astro.url.searchParams.get('error');
   .form-page{max-width:620px;margin:0 auto;padding:2.5rem;background:var(--surface);border:1px solid var(--line);border-radius:20px}
   .form-page h1{margin:0 0 .4rem;font-family:var(--display);font-size:1.7rem}
   .sub{margin:0 0 1.5rem;color:var(--muted);line-height:1.6}
+  .muted{color:var(--muted);font-size:.76rem;font-weight:600}
   .form-error{margin-bottom:1.2rem;padding:.8rem 1rem;border-radius:10px;background:#fdecec;color:#b91c1c;font-size:.85rem;font-weight:700}
   form{display:grid;gap:1.1rem}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}

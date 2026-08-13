@@ -3,7 +3,12 @@
 // DoS and content-injection risk (spec Section 57: file size limits, file
 // type validation).
 
-export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25MB
+// Netlify Functions (which power every SSR route here) hard-reject request
+// bodies above ~6MB before our code ever runs — a raw platform 413, not
+// something validateUpload() can catch or return a friendly error for.
+// Kept well under that ceiling to leave room for multipart overhead and
+// other form fields in the same request.
+export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024; // 4MB
 
 export const DOCUMENT_TYPES = new Set([
   'application/pdf',
