@@ -232,6 +232,7 @@ model BookProject {
   overallProgress  Int                @default(0)
   status           ProjectStatus      @default(ONBOARDING)
   notes            String?
+  shareToken       String?            @unique
   contributors     BookContributor[]
   ndaAgreement     NdaAgreement?
   quotations       Quotation[]

@@ -35,6 +35,10 @@ const activity = await prisma.activityEvent.findMany({ where: { projectId: id },
 const teamMembers = [...new Map(project.tasks.filter((t) => t.assignedToUser).map((t) => [t.assignedToUser!.id, t.assignedToUser!])).values()];
 const contactGrants = await prisma.contactShareGrant.findMany({ where: { projectId: id, revokedAt: null } });
 const grantByEmployee = new Map(contactGrants.map((g) => [g.employeeUserId, g]));
+
+const siteUrl = Astro.url.origin;
+const shareLink = project.shareToken ? `${siteUrl}/portal/share/${project.shareToken}` : null;
+const updateSent = Astro.url.searchParams.get('updateSent');
 ---
 <PortalLayout title={project.title} user={user} section="admin">
   <a class="back-link" href="/portal/admin">← Dashboard</a>
@@ -51,6 +55,39 @@ const grantByEmployee = new Map(contactGrants.map((g) => [g.employeeUserId, g]))
   </div>
 
   {error === 'missing-fields' && <div class="banner error">Please choose a task type and an assignee.</div>}
+  {updateSent && updateSent !== 'none' && <div class="banner ok">Update sent via {updateSent.split(',').join(', ')}.</div>}
+  {updateSent === 'none' && <div class="banner error">Could not send — the author has no phone/email on file, or the send failed.</div>}
+
+  <div class="card">
+    <h2>Client updates — no login required</h2>
+    <p class="muted">For clients who don't want to use the portal. Share a private link that always shows current progress, invoices, quotations and messages, or send a one-off WhatsApp/email/SMS update now.</p>
+    {shareLink ? (
+      <div class="share-link-row">
+        <input type="text" readonly value={shareLink} onclick="this.select()" />
+        <a href={shareLink} target="_blank" class="btn-link">Open ↗</a>
+      </div>
+    ) : (
+      <p class="muted small">No share link yet — generate one below.</p>
+    )}
+    <div class="client-update-actions">
+      <form method="post" action="/api/portal/admin/projects/share">
+        <input type="hidden" name="projectId" value={id} />
+        <input type="hidden" name="action" value="generate" />
+        <button type="submit" class="btn-secondary-btn">{shareLink ? 'Regenerate link' : 'Generate share link'}</button>
+      </form>
+      {shareLink && (
+        <form method="post" action="/api/portal/admin/projects/share">
+          <input type="hidden" name="projectId" value={id} />
+          <input type="hidden" name="action" value="revoke" />
+          <button type="submit" class="btn-secondary-btn">Revoke link</button>
+        </form>
+      )}
+      <form method="post" action="/api/portal/admin/projects/send-update">
+        <input type="hidden" name="projectId" value={id} />
+        <button type="submit" class="btn-primary">Send update now (WhatsApp/Email/SMS)</button>
+      </form>
+    </div>
+  </div>
 
   <div class="grid-2">
     <div class="card">
@@ -297,8 +334,14 @@ const grantByEmployee = new Map(contactGrants.map((g) => [g.employeeUserId, g]))
   .status-chip.small{padding:.3rem .6rem;font-size:.66rem}
   .banner{padding:1rem 1.2rem;border-radius:12px;font-size:.88rem;font-weight:700;margin-bottom:1.5rem}
   .banner.error{background:#fdecec;color:#b91c1c}
+  .banner.ok{background:var(--soft-green);color:var(--deep-green)}
   .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem}
-  .card{padding:1.5rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .card{padding:1.5rem;background:var(--surface);border:1px solid var(--line);border-radius:16px;margin-bottom:1.5rem}
+  .share-link-row{display:flex;gap:.6rem;align-items:center;margin-bottom:1rem}
+  .share-link-row input{flex:1;background:var(--surface-2);font-size:.78rem;color:var(--muted)}
+  .client-update-actions{display:flex;gap:.8rem;flex-wrap:wrap}
+  .client-update-actions form{display:contents}
+  .btn-secondary-btn{padding:.7rem 1rem;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--text);font-weight:800;font-size:.8rem;cursor:pointer}
   .card h2{margin:0 0 1rem;font-family:var(--display);font-size:1.1rem}
   form{display:grid;gap:1rem}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}

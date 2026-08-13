@@ -35,7 +35,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // rather than being redirected here, since they're not page navigations.
   if (pathname.startsWith('/api/portal')) return next();
 
-  const publicPaths = ['/portal/login', '/portal/register', '/portal/verify-email'];
+  const publicPaths = ['/portal/login', '/portal/register', '/portal/verify-email', '/portal/share/'];
   if (publicPaths.some((p) => pathname.startsWith(p))) return next();
 
   if (!auth) {

@@ -1,0 +1,172 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../lib/db';
+import { STAGE_ORDER, STAGE_LABELS } from '../../../lib/workflow';
+
+const { token } = Astro.params;
+
+const project = await prisma.bookProject.findUnique({
+  where: { shareToken: token },
+  include: {
+    package: true,
+    ndaAgreement: true,
+    author: { include: { authorProfile: true } },
+    invoices: { include: { payments: true }, orderBy: { createdAt: 'asc' } },
+    quotations: { orderBy: { createdAt: 'desc' } },
+    messages: { include: { author: true }, orderBy: { createdAt: 'asc' } },
+    activityEvents: { orderBy: { createdAt: 'desc' }, take: 20 },
+  },
+});
+
+if (!project) return new Response('This link is invalid or has been revoked. Please contact Chance Publishers for a new one.', { status: 404 });
+
+const authorName = project.author.authorProfile?.fullLegalName || project.author.email;
+const currentStageIndex = STAGE_ORDER.indexOf(project.currentStageKey);
+const nda = project.ndaAgreement;
+---
+<PortalLayout title={`${project.title} — Live update`}>
+  <div class="share-page">
+    <div class="share-header">
+      <img src="/Images/brand/chance-logo.png" alt="Chance Publishers" class="share-logo" />
+      <p class="share-note">This is a live, read-only view for <strong>{authorName}</strong>'s book — no login needed. Bookmark this page to check anytime.</p>
+    </div>
+
+    <div class="header-row">
+      <div>
+        <small>{project.projectNumber}</small>
+        <h1>{project.title}</h1>
+      </div>
+      <span class="status-chip">{project.status.replaceAll('_', ' ')}</span>
+    </div>
+
+    <div class="progress-block">
+      <div class="progress-track"><div class="progress-fill" style={`width:${project.overallProgress}%`}></div></div>
+      <span>{project.overallProgress}% complete</span>
+    </div>
+
+    <div class="stage-tracker" aria-label="Publishing journey progress">
+      {STAGE_ORDER.map((key, i) => (
+        <div class={`stage-step ${i < currentStageIndex ? 'done' : ''} ${i === currentStageIndex ? 'current' : ''}`}>
+          <span class="stage-dot">{i < currentStageIndex ? '✓' : i + 1}</span>
+          <span class="stage-name">{STAGE_LABELS[key] || key}</span>
+        </div>
+      ))}
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <h3>Publishing package</h3>
+        {project.package ? <p>{project.package.name} — KSh {Number(project.package.priceKes).toLocaleString()}</p> : <p class="muted">Not selected yet.</p>}
+      </div>
+      <div class="info-card">
+        <h3>NDA status</h3>
+        <p>{nda ? nda.status.replaceAll('_', ' ') : 'Not started yet.'}</p>
+      </div>
+    </div>
+
+    {project.invoices.length > 0 && (
+      <div class="card">
+        <h2>Invoices</h2>
+        <div class="finance-list">
+          {project.invoices.map((inv) => {
+            const paid = inv.payments.filter((p) => p.status === 'VERIFIED').reduce((s, p) => s + Number(p.amountKes), 0);
+            const outstanding = Math.max(0, Number(inv.amountKes) - paid);
+            return (
+              <div class="finance-row">
+                <span>{inv.invoiceNumber} — {inv.label || inv.type} — KSh {Number(inv.amountKes).toLocaleString()}</span>
+                <span class="status-chip small">{outstanding === 0 ? 'Paid' : `KSh ${outstanding.toLocaleString()} due`}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
+
+    {project.quotations.length > 0 && (
+      <div class="card">
+        <h2>Quotations</h2>
+        <div class="finance-list">
+          {project.quotations.map((q) => (
+            <div class="finance-row">
+              <span>{q.quotationNumber} — {q.type.replaceAll('_', ' ')}</span>
+              <span class="status-chip small">{q.status.replaceAll('_', ' ')}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {project.messages.length > 0 && (
+      <div class="card">
+        <h2>Messages</h2>
+        <div class="message-list">
+          {project.messages.map((m) => (
+            <div class="message-row">
+              <strong>{m.author.email === project.author.email ? authorName : 'Chance Publishers team'}</strong>
+              <small class="muted">{m.createdAt.toLocaleString('en-GB')}</small>
+              <p>{m.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {project.activityEvents.length > 0 && (
+      <div class="card">
+        <h2>Recent activity</h2>
+        <ol class="timeline">
+          {project.activityEvents.map((e) => (
+            <li><small>{e.createdAt.toLocaleString('en-GB')}</small><span>{e.message}</span></li>
+          ))}
+        </ol>
+      </div>
+    )}
+
+    <p class="footer-note">Questions? <a href="https://wa.me/254758305622">Chat with us on WhatsApp ↗</a></p>
+  </div>
+</PortalLayout>
+<style>
+  .share-page{max-width:760px;margin:0 auto;padding:2rem 1rem}
+  .share-header{text-align:center;margin-bottom:2rem}
+  .share-logo{height:56px;margin:0 auto 1rem}
+  .share-note{max-width:480px;margin:0 auto;color:var(--muted);font-size:.85rem;line-height:1.6}
+  .header-row{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.2rem}
+  .header-row small{color:var(--green);font-weight:800;font-size:.7rem;letter-spacing:.08em}
+  .header-row h1{margin:.2rem 0 0;font-family:var(--display);font-size:1.9rem}
+  .status-chip{padding:.4rem .8rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.72rem;font-weight:800;white-space:nowrap}
+  .status-chip.small{padding:.3rem .6rem;font-size:.66rem}
+  .progress-block{margin-bottom:1.5rem}
+  .progress-track{height:10px;border-radius:99px;background:var(--soft-green);overflow:hidden;margin-bottom:.5rem}
+  .progress-fill{height:100%;background:var(--green)}
+  .progress-block span{font-size:.8rem;color:var(--muted);font-weight:700}
+  .stage-tracker{display:flex;flex-wrap:wrap;gap:0;margin-bottom:1.5rem;padding:1.2rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .stage-step{display:flex;align-items:center;gap:.5rem;padding:.3rem .8rem .3rem 0;opacity:.5}
+  .stage-step.done,.stage-step.current{opacity:1}
+  .stage-dot{display:grid;place-items:center;flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--soft-green);color:var(--deep-green);font-size:.68rem;font-weight:900}
+  .stage-step.done .stage-dot{background:var(--green);color:#fff}
+  .stage-step.current .stage-dot{background:var(--yellow);color:#172315}
+  .stage-name{font-size:.72rem;font-weight:800;color:var(--muted);white-space:nowrap}
+  .stage-step.current .stage-name{color:var(--text)}
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.2rem;margin-bottom:1.5rem}
+  .info-card{padding:1.4rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .info-card h3{margin:0 0 .5rem;font-family:var(--display);font-size:.95rem}
+  .info-card p{margin:0;font-size:.88rem}
+  .muted{color:var(--muted)}
+  .card{margin-bottom:1.5rem;padding:1.5rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .card h2{margin:0 0 1rem;font-family:var(--display);font-size:1.1rem}
+  .finance-list{display:grid;gap:.5rem}
+  .finance-row{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.7rem .9rem;background:var(--surface-2);border-radius:9px;font-size:.82rem}
+  .message-list{display:grid;gap:1rem}
+  .message-row{padding-left:1rem;border-left:2px solid var(--soft-green)}
+  .message-row strong{font-size:.82rem}
+  .message-row small{margin-left:.5rem;font-size:.68rem;font-weight:700}
+  .message-row p{margin:.3rem 0 0;font-size:.85rem;line-height:1.5}
+  .timeline{margin:0;padding:0;list-style:none;display:grid;gap:.8rem}
+  .timeline li{display:flex;flex-direction:column;gap:.15rem;padding-left:1rem;border-left:2px solid var(--soft-green)}
+  .timeline small{color:var(--muted);font-size:.68rem;font-weight:700}
+  .timeline span{font-size:.85rem}
+  .footer-note{text-align:center;color:var(--muted);font-size:.82rem;margin-top:2rem}
+  .footer-note a{color:var(--green);font-weight:800;text-decoration:none}
+  @media(max-width:560px){.stage-tracker{flex-direction:column;gap:.5rem}.stage-step{padding-right:0}}
+</style>
