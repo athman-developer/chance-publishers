@@ -3,7 +3,7 @@ export const prerender = false;
 import type { APIRoute } from 'astro';
 import { prisma } from '../../../../../lib/db';
 import { completeTaskAndAdvanceProject } from '../../../../../lib/workflow';
-import { notifyAdmins, logActivity } from '../../../../../lib/notify';
+import { notifyAdmins, notifyEverywhere, logActivity } from '../../../../../lib/notify';
 
 export const POST: APIRoute = async ({ request, locals, redirect }) => {
   const user = locals.user;
@@ -29,6 +29,15 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     });
     if (approval.taskId) await completeTaskAndAdvanceProject(prisma, approval.taskId);
     await notifyAdmins('APPROVAL_DECIDED', `${approval.kind.replaceAll('_', ' ')} approved by the author`, `/portal/admin/projects/${approval.projectId}`);
+    if (approval.task?.assignedToUserId) {
+      await notifyEverywhere(
+        approval.task.assignedToUserId,
+        'APPROVAL_DECIDED',
+        `The author approved your ${approval.kind.replaceAll('_', ' ')} for "${approval.project.title}". Great work!`,
+        `/portal/employee/tasks/${approval.taskId}`,
+        `Your work was approved — Chance Publishers`,
+      );
+    }
     await logActivity(approval.projectId, `Author approved ${approval.kind.replaceAll('_', ' ')}`);
   } else if (action === 'request-changes') {
     await prisma.$transaction([
@@ -44,6 +53,15 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
         : []),
     ]);
     await notifyAdmins('APPROVAL_DECIDED', `Author requested changes on ${approval.kind.replaceAll('_', ' ')}`, `/portal/admin/projects/${approval.projectId}`);
+    if (approval.task?.assignedToUserId) {
+      await notifyEverywhere(
+        approval.task.assignedToUserId,
+        'APPROVAL_DECIDED',
+        `The author requested changes on your ${approval.kind.replaceAll('_', ' ')} for "${approval.project.title}"${note ? `: ${note}` : '.'}`,
+        `/portal/employee/tasks/${approval.taskId}`,
+        `Changes requested — Chance Publishers`,
+      );
+    }
     await logActivity(approval.projectId, `Author requested changes on ${approval.kind.replaceAll('_', ' ')}`);
   }
 

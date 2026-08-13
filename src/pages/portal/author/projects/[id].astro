@@ -55,6 +55,9 @@ if (!nda || nda.status !== 'EXECUTED') {
 } else {
   whatsNext = { text: "Your book is with our team right now — we'll notify you the moment there's something for you to do." };
 }
+// Auto-refresh while passively waiting on the team, so a new approval
+// request or progress update shows up without a manual reload.
+const shouldPoll = !whatsNext.href;
 
 const quotations = await prisma.quotation.findMany({ where: { projectId: id }, orderBy: { createdAt: 'desc' } });
 const printJobs = await prisma.printJob.findMany({ where: { projectId: id }, orderBy: { createdAt: 'desc' } });
@@ -367,4 +370,11 @@ const activity = await prisma.activityEvent.findMany({ where: { projectId: id },
       }
     });
   });
+</script>
+<script define:vars={{ shouldPoll }}>
+  // While passively waiting on the team, poll for updates instead of
+  // requiring a manual reload.
+  if (shouldPoll) {
+    setInterval(() => location.reload(), 20000);
+  }
 </script>

@@ -25,6 +25,9 @@ const sourceFile = task.project.fileAssets
   .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
 
 const error = Astro.url.searchParams.get('error');
+// Auto-refresh while waiting on someone else's decision, so status changes
+// (approved/changes requested) show up without a manual reload.
+const shouldPoll = ['SUBMITTED_FOR_REVIEW', 'APPROVED'].includes(task.status);
 ---
 <PortalLayout title={task.taskType.replaceAll('_', ' ')} user={user} section="employee">
   <a class="back-link" href="/portal/employee">← My Assignments</a>
@@ -130,4 +133,11 @@ const error = Astro.url.searchParams.get('error');
       }
     });
   });
+</script>
+<script define:vars={{ shouldPoll }}>
+  // While waiting on admin/author review, poll for status changes instead
+  // of requiring a manual reload.
+  if (shouldPoll) {
+    setInterval(() => location.reload(), 20000);
+  }
 </script>
