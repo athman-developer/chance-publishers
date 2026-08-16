@@ -1,0 +1,83 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../lib/db';
+
+const user = Astro.locals.user!;
+
+const employees = await prisma.user.findMany({
+  where: { roles: { some: { role: { key: 'EMPLOYEE' } } } },
+  include: { employeeProfile: true },
+  orderBy: { createdAt: 'desc' },
+});
+
+const error = Astro.url.searchParams.get('error');
+const created = Astro.url.searchParams.get('created');
+const sent = Astro.url.searchParams.get('sent');
+---
+<PortalLayout title="Team" user={user} section="admin">
+  <h1>Team</h1>
+  <p class="muted">Add an account for a new staff member. They'll receive their login email and temporary password automatically.</p>
+
+  {error === 'missing-fields' && <div class="banner error">Please fill in the name and email.</div>}
+  {error === 'email-taken' && <div class="banner error">That email is already registered.</div>}
+  {created && (
+    <div class="banner ok">
+      Account created. Login details sent via {sent === 'none' ? 'no channel — check email/SMS setup' : sent?.split(',').join(' and ')}.
+    </div>
+  )}
+
+  <form method="post" action="/api/portal/admin/team/create" class="card form-card">
+    <div class="grid-2">
+      <label>Full name<input type="text" name="fullName" required /></label>
+      <label>Email<input type="email" name="email" required /></label>
+      <label>Phone (for SMS, optional)<input type="tel" name="phone" placeholder="07xx xxx xxx" /></label>
+      <label>Job title<input type="text" name="jobTitle" placeholder="e.g. Editor, Layout Designer" /></label>
+      <label>Type
+        <select name="designation">
+          <option value="INTERNAL">Internal staff</option>
+          <option value="EXTERNAL">External / freelance</option>
+        </select>
+      </label>
+    </div>
+    <button type="submit" class="btn-primary">Create account &amp; send login details</button>
+  </form>
+
+  <h2 class="section-title">Current staff ({employees.length})</h2>
+  {employees.length === 0 ? (
+    <p class="muted">No staff accounts yet.</p>
+  ) : (
+    <table class="table">
+      <thead><tr><th>Name / Email</th><th>Staff ID</th><th>Job title</th><th>Type</th><th>Status</th></tr></thead>
+      <tbody>
+        {employees.map((e) => (
+          <tr>
+            <td>{e.employeeProfile?.jobTitle ? e.email : e.email}</td>
+            <td>{e.employeeProfile?.staffId || '—'}</td>
+            <td>{e.employeeProfile?.jobTitle || '—'}</td>
+            <td>{e.employeeProfile?.designation || '—'}</td>
+            <td>{e.status}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+</PortalLayout>
+<style>
+  h1{font-family:var(--display);font-size:1.6rem;margin:0 0 .3rem}
+  .muted{color:var(--muted);font-size:.85rem;margin:0 0 1.5rem}
+  .banner{padding:1rem 1.2rem;border-radius:12px;font-size:.86rem;font-weight:700;margin-bottom:1.5rem}
+  .banner.ok{background:var(--soft-green);color:var(--deep-green)}
+  .banner.error{background:#fdecec;color:#b91c1c}
+  .card{padding:1.4rem;background:var(--surface);border:1px solid var(--line);border-radius:16px;margin-bottom:2rem}
+  .form-card{display:grid;gap:1rem}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800}
+  input,select{padding:.65rem .8rem;border:1px solid var(--line);border-radius:9px;font-size:.85rem;font-family:inherit}
+  .btn-primary{padding:.85rem;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 5px 0 var(--deep-green);width:max-content;padding-inline:1.6rem}
+  .section-title{font-family:var(--display);font-size:1.1rem;margin:0 0 1rem}
+  .table{width:100%;border-collapse:collapse;font-size:.85rem}
+  .table th{text-align:left;padding:.6rem .8rem;border-bottom:2px solid var(--line);color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+  .table td{padding:.7rem .8rem;border-bottom:1px solid var(--line)}
+  @media(max-width:700px){.grid-2{grid-template-columns:1fr}}
+</style>
