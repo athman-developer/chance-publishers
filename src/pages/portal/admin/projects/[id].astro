@@ -56,7 +56,6 @@ const updateSent = Astro.url.searchParams.get('updateSent');
   </div>
 
   {error === 'missing-fields' && <div class="banner error">Please choose a task type and an assignee.</div>}
-  {error === 'nda-not-executed' && <div class="banner error">The NDA must be executed before a manuscript can be uploaded.</div>}
   {error === 'no-file' && <div class="banner error">Please choose a file to upload.</div>}
   {error === 'file-too-large' && <div class="banner error">That file is over the 4MB limit — please compress it or split it into parts.</div>}
   {error === 'unsupported-file-type' && <div class="banner error">That file type isn't supported. Use Word, PDF, RTF or ODT.</div>}
@@ -74,14 +73,13 @@ const updateSent = Astro.url.searchParams.get('updateSent');
         ))}
       </ul>
     )}
-    {project.ndaAgreement?.status === 'EXECUTED' ? (
-      <form method="post" action="/api/portal/admin/manuscript/upload" enctype="multipart/form-data" data-max-upload-form>
-        <label>Upload manuscript on the client's behalf<input type="file" name="manuscript" accept=".pdf,.doc,.docx,.rtf,.odt" required /><small class="muted">Max 4MB</small></label>
-        <button type="submit" class="btn-primary">Upload manuscript</button>
-      </form>
-    ) : (
-      <p class="muted small">The NDA must be executed before a manuscript can be uploaded.</p>
+    {project.ndaAgreement?.status !== 'EXECUTED' && (
+      <p class="muted small">The NDA isn't executed yet — the file will still be saved, but the project stage won't advance until it is.</p>
     )}
+    <form method="post" action="/api/portal/admin/manuscript/upload" enctype="multipart/form-data" data-max-upload-form>
+      <label>Upload manuscript on the client's behalf<input type="file" name="manuscript" accept=".pdf,.doc,.docx,.rtf,.odt" required /><small class="muted">Max 4MB</small></label>
+      <button type="submit" class="btn-primary">Upload manuscript</button>
+    </form>
   </div>
 
   <div class="card">

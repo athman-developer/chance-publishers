@@ -24,9 +24,6 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     include: { ndaAgreement: true },
   });
   if (!project) return redirect('/portal/admin');
-  if (project.ndaAgreement?.status !== 'EXECUTED') {
-    return redirect(`/portal/admin/projects/${projectId}?error=nda-not-executed`);
-  }
   const validated = validateUpload(rawFile, DOCUMENT_TYPES);
   if (!validated.ok) {
     return redirect(`/portal/admin/projects/${projectId}?error=${validated.error}`);
@@ -53,7 +50,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
         version: existingCount + 1,
       },
     }),
-    ...(existingCount === 0
+    ...(existingCount === 0 && project.ndaAgreement?.status === 'EXECUTED'
       ? [prisma.bookProject.update({
           where: { id: projectId },
           data: { status: 'ACTIVE', currentStageKey: 'ADMIN_REVIEW', overallProgress: 15 },
@@ -61,7 +58,10 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       : []),
   ]);
 
-  await logActivity(projectId, `Manuscript uploaded by admin on the client's behalf (v${existingCount + 1})`);
+  const ndaNote = project.ndaAgreement?.status === 'EXECUTED'
+    ? ''
+    : ' — held pending NDA execution, project stage will not advance yet';
+  await logActivity(projectId, `Manuscript uploaded by admin on the client's behalf (v${existingCount + 1})${ndaNote}`);
 
   return redirect(`/portal/admin/projects/${projectId}?manuscript=submitted`);
 };
