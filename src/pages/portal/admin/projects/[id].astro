@@ -18,6 +18,7 @@ const project = await prisma.bookProject.findUnique({
     quotations: { orderBy: { createdAt: 'desc' } },
     invoices: { include: { payments: true }, orderBy: { createdAt: 'desc' } },
     printJobs: { orderBy: { createdAt: 'desc' } },
+    fileAssets: { where: { kind: 'MANUSCRIPT' }, orderBy: { version: 'desc' } },
   },
 });
 if (!project) return Astro.redirect('/portal/admin');
@@ -55,8 +56,33 @@ const updateSent = Astro.url.searchParams.get('updateSent');
   </div>
 
   {error === 'missing-fields' && <div class="banner error">Please choose a task type and an assignee.</div>}
+  {error === 'nda-not-executed' && <div class="banner error">The NDA must be executed before a manuscript can be uploaded.</div>}
+  {error === 'no-file' && <div class="banner error">Please choose a file to upload.</div>}
+  {error === 'file-too-large' && <div class="banner error">That file is over the 4MB limit — please compress it or split it into parts.</div>}
+  {error === 'unsupported-file-type' && <div class="banner error">That file type isn't supported. Use Word, PDF, RTF or ODT.</div>}
+  {Astro.url.searchParams.get('manuscript') === 'submitted' && <div class="banner ok">Manuscript uploaded.</div>}
   {updateSent && updateSent !== 'none' && <div class="banner ok">Update sent via {updateSent.split(',').join(', ')}.</div>}
   {updateSent === 'none' && <div class="banner error">Could not send — the author has no phone/email on file, or the send failed.</div>}
+
+  <div class="card">
+    <h2>Manuscript</h2>
+    <p class="muted">If the client sent their manuscript by email or WhatsApp instead of using the portal, upload it here on their behalf — it appears in their project exactly as if they'd submitted it themselves.</p>
+    {project.fileAssets.length > 0 && (
+      <ul class="file-list">
+        {project.fileAssets.map((f) => (
+          <li>v{f.version} — {f.originalFilename} <a href={`/api/portal/files/download?fileId=${f.id}`} target="_blank">↗</a></li>
+        ))}
+      </ul>
+    )}
+    {project.ndaAgreement?.status === 'EXECUTED' ? (
+      <form method="post" action="/api/portal/admin/manuscript/upload" enctype="multipart/form-data" data-max-upload-form>
+        <label>Upload manuscript on the client's behalf<input type="file" name="manuscript" accept=".pdf,.doc,.docx,.rtf,.odt" required /><small class="muted">Max 4MB</small></label>
+        <button type="submit" class="btn-primary">Upload manuscript</button>
+      </form>
+    ) : (
+      <p class="muted small">The NDA must be executed before a manuscript can be uploaded.</p>
+    )}
+  </div>
 
   <div class="card">
     <h2>Client updates — no login required</h2>
@@ -368,5 +394,23 @@ const updateSent = Astro.url.searchParams.get('updateSent');
   .finance-summary{display:grid;gap:1rem}
   .finance-summary div{display:flex;justify-content:space-between;align-items:center;padding-bottom:.6rem;border-bottom:1px solid var(--line)}
   .finance-summary strong{font-family:var(--display);font-size:1.1rem;color:var(--deep-green)}
+  .file-list{margin:0 0 1rem;padding-left:1.2rem;font-size:.85rem}
+  .file-list a{color:var(--green);font-weight:800;text-decoration:none}
+  .muted.small{font-size:.76rem}
   @media(max-width:820px){.grid-2{grid-template-columns:1fr}}
 </style>
+<script>
+  // Netlify Functions reject request bodies over ~6MB before our server code
+  // ever runs, so catch oversized files client-side instead.
+  const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+  document.querySelectorAll<HTMLFormElement>('[data-max-upload-form]').forEach((form) => {
+    form.addEventListener('submit', (e) => {
+      const fileInput = form.querySelector<HTMLInputElement>('input[type="file"]');
+      const file = fileInput?.files?.[0];
+      if (file && file.size > MAX_UPLOAD_BYTES) {
+        e.preventDefault();
+        alert(`That file is ${(file.size / (1024 * 1024)).toFixed(1)}MB, which is over the 4MB limit. Please compress it or split it into parts.`);
+      }
+    });
+  });
+</script>
