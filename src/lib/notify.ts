@@ -41,6 +41,32 @@ export async function notifyAdmins(type: NotificationType, message: string, link
   });
 }
 
+// Same as notifyAdmins but also reaches email/SMS/WhatsApp — for events
+// admin needs to act on promptly (e.g. work submitted for review) rather
+// than just notice next time they open the portal.
+export async function notifyAdminsEverywhere(
+  type: NotificationType,
+  message: string,
+  link: string | undefined,
+  subject: string,
+) {
+  const admins = await prisma.user.findMany({
+    where: { roles: { some: { role: { key: { in: ['ADMIN', 'SUPER_ADMIN'] } } } } },
+  });
+  await prisma.notification.createMany({
+    data: admins.map((a) => ({ userId: a.id, type, message, link })),
+  });
+  for (const admin of admins) {
+    if (admin.phone) {
+      await sendWhatsAppMessage(admin.phone, message).catch(() => {});
+      await sendSms(admin.phone, message).catch(() => {});
+    }
+    if (admin.email) {
+      await sendEmail(admin.email, subject, message).catch(() => {});
+    }
+  }
+}
+
 export async function logActivity(projectId: string, message: string) {
   await prisma.activityEvent.create({ data: { projectId, message } });
 }

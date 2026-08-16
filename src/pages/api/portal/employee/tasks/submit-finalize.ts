@@ -6,6 +6,7 @@ import { prisma } from '../../../../../lib/db';
 import { getStorage } from '../../../../../lib/storage';
 import { taskTypeConfig } from '../../../../../lib/workflow';
 import { PROOF_TYPES } from '../../../../../lib/upload-validation';
+import { notifyAdminsEverywhere } from '../../../../../lib/notify';
 
 export const MAX_CHUNKED_UPLOAD_BYTES = 20 * 1024 * 1024; // 20MB
 
@@ -24,7 +25,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const filename = String(data.get('filename') || 'upload').slice(0, 200);
   const contentType = String(data.get('contentType') || 'application/octet-stream');
 
-  const task = await prisma.task.findUnique({ where: { id: taskId }, include: { fileAssets: true } });
+  const task = await prisma.task.findUnique({ where: { id: taskId }, include: { fileAssets: true, project: true } });
   if (!task || task.assignedToUserId !== user.id) return json({ ok: false, error: 'not-found' }, 404);
   if (!['ACCEPTED', 'IN_PROGRESS', 'CHANGES_REQUESTED'].includes(task.status)) {
     return json({ ok: false, error: 'wrong-status' }, 400);
@@ -81,6 +82,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
   ]);
 
   await Promise.all(chunkKeys.map((k) => storage.delete(k)));
+
+  await notifyAdminsEverywhere(
+    'APPROVAL_REQUIRED',
+    `${task.taskType.replaceAll('_', ' ')} submitted for review on "${task.project.title}".`,
+    `/portal/admin/tasks/${taskId}`,
+    'Work submitted for review — Chance Publishers',
+  );
 
   return json({ ok: true, redirect: `/portal/employee/tasks/${taskId}` });
 };

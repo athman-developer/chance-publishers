@@ -6,6 +6,7 @@ import { prisma } from '../../../../../lib/db';
 import { getStorage } from '../../../../../lib/storage';
 import { taskTypeConfig } from '../../../../../lib/workflow';
 import { validateUpload, PROOF_TYPES } from '../../../../../lib/upload-validation';
+import { notifyAdminsEverywhere } from '../../../../../lib/notify';
 
 export const POST: APIRoute = async ({ request, locals, redirect }) => {
   const user = locals.user;
@@ -15,7 +16,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   const taskId = String(data.get('taskId') || '');
   const file = data.get('deliverable');
 
-  const task = await prisma.task.findUnique({ where: { id: taskId }, include: { fileAssets: true } });
+  const task = await prisma.task.findUnique({ where: { id: taskId }, include: { fileAssets: true, project: true } });
   if (!task || task.assignedToUserId !== user.id) return redirect('/portal/employee');
   if (!['ACCEPTED', 'IN_PROGRESS', 'CHANGES_REQUESTED'].includes(task.status)) {
     return redirect(`/portal/employee/tasks/${taskId}`);
@@ -50,6 +51,13 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       data: { status: 'SUBMITTED_FOR_REVIEW', submittedAt: new Date(), changeRequestNote: null },
     }),
   ]);
+
+  await notifyAdminsEverywhere(
+    'APPROVAL_REQUIRED',
+    `${task.taskType.replaceAll('_', ' ')} submitted for review on "${task.project.title}".`,
+    `/portal/admin/tasks/${taskId}`,
+    'Work submitted for review — Chance Publishers',
+  );
 
   return redirect(`/portal/employee/tasks/${taskId}`);
 };
