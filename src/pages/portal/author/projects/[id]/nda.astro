@@ -27,6 +27,17 @@ const packageInvoices = nda
       orderBy: { createdAt: 'asc' },
     })
   : [];
+const depositInvoice = packageInvoices.find((inv) => inv.label?.includes('Deposit'));
+const balanceInvoice = packageInvoices.find((inv) => inv.label?.includes('Balance'));
+const invoiceState = (inv: (typeof packageInvoices)[number] | undefined) => {
+  if (!inv) return null;
+  const paid = inv.payments.some((p) => p.status === 'VERIFIED');
+  const pending = inv.payments.some((p) => p.status === 'PENDING_VERIFICATION');
+  return { paid, pending };
+};
+const depositState = invoiceState(depositInvoice);
+const balanceState = invoiceState(balanceInvoice);
+const feePending = nda?.invoice?.payments.some((p) => p.status === 'PENDING_VERIFICATION');
 ---
 <PortalLayout title={`NDA — ${project.title}`} user={user} section="author">
   <a class="back-link" href={`/portal/author/projects/${id}`}>← {project.title}</a>
@@ -57,53 +68,93 @@ const packageInvoices = nda
   )}
 
   {nda && nda.status === 'FEE_INVOICED' && (
-    <div class="card">
-      <h2>NDA processing fee</h2>
-      <p class="amount">KSh {Number(nda.invoice!.amountKes).toLocaleString()}</p>
-      <p class="muted">Invoice {nda.invoice!.invoiceNumber}</p>
+    <div class="card due-card">
+      <div class="due-header">
+        <h2>Amount due now</h2>
+        <p class="muted">Your NDA fee and package deposit are paid together to get your project started.</p>
+      </div>
 
-      {nda.invoice!.payments.some((p) => p.status === 'PENDING_VERIFICATION') ? (
-        <div class="banner ok">Your payment proof is submitted and awaiting verification by our finance team.</div>
+      <div class="due-list">
+        <div class="due-row">
+          <div>
+            <strong>NDA processing fee</strong>
+            <small class="muted">{nda.invoice!.invoiceNumber}</small>
+          </div>
+          <span class="amount-small">KSh {Number(nda.invoice!.amountKes).toLocaleString()}</span>
+        </div>
+        {depositInvoice && (
+          <div class="due-row">
+            <div>
+              <strong>{project.package?.name} package deposit (70%)</strong>
+              <small class="muted">{depositInvoice.invoiceNumber}</small>
+            </div>
+            <span class="amount-small">KSh {Number(depositInvoice.amountKes).toLocaleString()}</span>
+          </div>
+        )}
+      </div>
+
+      <div class="due-total">
+        <span>Total due now</span>
+        <strong>KSh {(Number(nda.invoice!.amountKes) + Number(depositInvoice?.amountKes || 0)).toLocaleString()}</strong>
+      </div>
+
+      {feePending ? (
+        <div class="banner ok">Your NDA fee payment proof is submitted and awaiting verification.</div>
       ) : (
         <>
-          <h3>Pay by bank transfer</h3>
+          <h3>Pay the NDA fee — bank transfer</h3>
           <p class="muted">Transfer KSh {Number(nda.invoice!.amountKes).toLocaleString()} to Chance Publishers' account (details provided by our team), then upload your proof of payment below.</p>
           <form method="post" action="/api/portal/nda/pay-bank-transfer" enctype="multipart/form-data" data-max-upload-form>
             <input type="hidden" name="projectId" value={id} />
             <label>Transaction reference<input type="text" name="reference" /></label>
             <label>Proof of payment (screenshot or PDF)<input type="file" name="proof" accept=".pdf,.jpg,.jpeg,.png" required /><small class="muted">Max 4MB</small></label>
-            <button type="submit" class="btn-primary">Submit proof of payment</button>
+            <button type="submit" class="btn-primary">Submit NDA fee proof</button>
           </form>
           <p class="muted small">M-Pesa online payment is coming soon. To pay by cash, please contact our office directly.</p>
         </>
       )}
+
+      {depositInvoice && (
+        <div class="deposit-cta">
+          <p class="muted small">Pay the package deposit using the same bank transfer or M-Pesa options, on its own invoice page:</p>
+          <a class="btn-secondary" href={`/portal/invoices/${depositInvoice.id}`}>
+            {depositState?.paid ? 'Deposit paid ✓' : depositState?.pending ? 'Deposit — verifying' : `Pay package deposit — KSh ${Number(depositInvoice.amountKes).toLocaleString()} →`}
+          </a>
+        </div>
+      )}
     </div>
   )}
 
-  {packageInvoices.length > 0 && (
-    <div class="card">
-      <h2>{project.package?.name} package payment</h2>
-      <p class="muted">Your {project.package?.name} package (KSh {Number(project.package?.priceKes || 0).toLocaleString()}) is invoiced in two parts — pay the deposit now to secure your slot, alongside your NDA fee.</p>
-      <div class="package-invoice-list">
-        {packageInvoices.map((inv) => {
-          const paid = inv.payments.some((p) => p.status === 'VERIFIED');
-          const pending = inv.payments.some((p) => p.status === 'PENDING_VERIFICATION');
-          return (
-            <a href={`/portal/invoices/${inv.id}`} class="package-invoice-row">
-              <div>
-                <strong>{inv.label}</strong>
-                <small class="muted">{inv.invoiceNumber}</small>
-              </div>
-              <div>
-                <span class="amount-small">KSh {Number(inv.amountKes).toLocaleString()}</span>
-                <span class={`status-chip ${paid ? 'ok' : pending ? 'pending' : ''}`}>
-                  {paid ? 'Paid' : pending ? 'Verifying' : 'Pay now →'}
-                </span>
-              </div>
-            </a>
-          );
-        })}
+  {depositInvoice && nda && nda.status !== 'FEE_INVOICED' && !depositState?.paid && (
+    <div class="card due-card">
+      <h2>Package deposit</h2>
+      <div class="due-row">
+        <div>
+          <strong>{project.package?.name} package deposit (70%)</strong>
+          <small class="muted">{depositInvoice.invoiceNumber}</small>
+        </div>
+        <span class="amount-small">KSh {Number(depositInvoice.amountKes).toLocaleString()}</span>
       </div>
+      <a class="btn-primary link-btn" href={`/portal/invoices/${depositInvoice.id}`}>
+        {depositState?.pending ? 'Verifying payment' : 'Pay deposit now →'}
+      </a>
+    </div>
+  )}
+
+  {balanceInvoice && (
+    <div class="card balance-card">
+      <h2>Package balance</h2>
+      <p class="muted">The remaining 30% balance is due before your final files are released — no rush to pay it right now.</p>
+      <div class="due-row">
+        <div>
+          <strong>{project.package?.name} package balance (30%)</strong>
+          <small class="muted">{balanceInvoice.invoiceNumber}</small>
+        </div>
+        <span class="amount-small">KSh {Number(balanceInvoice.amountKes).toLocaleString()}</span>
+      </div>
+      <a class="btn-text-link" href={`/portal/invoices/${balanceInvoice.id}`}>
+        {balanceState?.paid ? 'Paid ✓' : balanceState?.pending ? 'Verifying payment' : 'View invoice / pay early →'}
+      </a>
     </div>
   )}
 
@@ -173,15 +224,24 @@ const packageInvoices = nda
   .amount{font-family:var(--display);font-size:2rem;color:var(--deep-green);margin:0}
   .muted{color:var(--muted);font-size:.85rem;line-height:1.6}
   .muted.small{font-size:.76rem}
-  .package-invoice-list{display:grid;gap:.7rem;margin-top:1.2rem}
-  .package-invoice-row{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1rem 1.2rem;background:var(--surface-2);border-radius:12px;text-decoration:none;color:var(--text)}
-  .package-invoice-row strong{display:block;font-size:.88rem}
-  .package-invoice-row small{color:var(--muted);font-size:.7rem;font-weight:700}
-  .package-invoice-row > div:last-child{display:flex;align-items:center;gap:.7rem}
-  .amount-small{font-family:var(--display);font-weight:700;font-size:.95rem;color:var(--deep-green)}
-  .status-chip{padding:.35rem .7rem;border-radius:99px;background:var(--yellow);color:#172315;font-size:.68rem;font-weight:800;white-space:nowrap}
-  .status-chip.ok{background:var(--soft-green);color:var(--deep-green)}
-  .status-chip.pending{background:#fff8e1;color:#8a6800}
+  .amount-small{font-family:var(--display);font-weight:700;font-size:.95rem;color:var(--deep-green);white-space:nowrap}
+
+  .due-card h2{margin-bottom:.3rem}
+  .due-header{margin-bottom:1.2rem}
+  .due-header .muted{margin:0}
+  .due-list{display:grid;gap:.6rem}
+  .due-row{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.9rem 1.1rem;background:var(--surface-2);border-radius:12px}
+  .due-row strong{display:block;font-size:.88rem}
+  .due-row small{color:var(--muted);font-size:.7rem;font-weight:700}
+  .due-total{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.1rem;margin:1rem 0 1.5rem;border-top:2px solid var(--line);border-bottom:2px solid var(--line);font-weight:800}
+  .due-total strong{font-family:var(--display);font-size:1.15rem;color:var(--deep-green)}
+  .deposit-cta{margin-top:1.5rem;padding-top:1.3rem;border-top:1px dashed var(--line)}
+  .deposit-cta .muted{margin:0 0 .7rem}
+  .link-btn{display:inline-block;text-decoration:none;text-align:center}
+  .btn-text-link{display:inline-block;margin-top:.9rem;color:var(--green);font-weight:800;font-size:.85rem;text-decoration:none}
+
+  .balance-card{border-style:dashed;background:var(--surface-2)}
+  .balance-card h2{font-size:1.1rem}
   .nda-form{max-width:600px;padding:2rem;background:var(--surface);border:1px solid var(--line);border-radius:20px;display:grid;gap:1rem}
   .nda-form h3{margin:1rem 0 0;font-family:var(--display);font-size:1rem}
   .intro{margin:0 0 .5rem;color:var(--muted);line-height:1.6}

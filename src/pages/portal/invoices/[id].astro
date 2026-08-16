@@ -44,24 +44,46 @@ const submitted = Astro.url.searchParams.get('submitted');
   {submitted && <div class="banner ok">Payment proof submitted — awaiting verification.</div>}
   {error === 'missing-cheque-fields' && <div class="banner error">Please fill in all cheque details.</div>}
 
-  <div class="card">
-    <table class="items-table">
-      <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
-      <tbody>
-        {invoice.items.map((item) => (
-          <tr>
-            <td>{item.description}</td>
-            <td>{item.quantity}</td>
-            <td>KSh {Number(item.unitPriceKes).toLocaleString()}</td>
-            <td>KSh {(item.quantity * Number(item.unitPriceKes)).toLocaleString()}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+  <div class="card invoice-card">
+    <div class="invoice-meta">
+      <div>
+        <span class="meta-label">Billed to</span>
+        <strong>{invoice.project.author.authorProfile?.fullLegalName || invoice.project.author.email}</strong>
+      </div>
+      <div>
+        <span class="meta-label">Invoice date</span>
+        <strong>{invoice.createdAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+      </div>
+    </div>
+
+    {invoice.items.length > 0 ? (
+      <table class="items-table">
+        <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+        <tbody>
+          {invoice.items.map((item) => (
+            <tr>
+              <td>{item.description}</td>
+              <td>{item.quantity}</td>
+              <td>KSh {Number(item.unitPriceKes).toLocaleString()}</td>
+              <td>KSh {(item.quantity * Number(item.unitPriceKes)).toLocaleString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    ) : (
+      <div class="single-line-item">
+        <span>{invoice.description || invoice.label || invoice.type.replaceAll('_', ' ')}</span>
+        <span>KSh {Number(invoice.amountKes).toLocaleString()}</span>
+      </div>
+    )}
+
     <div class="totals">
-      <div><span class="muted">Total</span><strong>KSh {Number(invoice.amountKes).toLocaleString()}</strong></div>
-      <div><span class="muted">Paid</span><strong>KSh {verifiedPaid.toLocaleString()}</strong></div>
-      <div><span class="muted">Outstanding</span><strong>KSh {outstanding.toLocaleString()}</strong></div>
+      <div><span class="muted">Invoice total</span><strong>KSh {Number(invoice.amountKes).toLocaleString()}</strong></div>
+      <div><span class="muted">Paid to date</span><strong>KSh {verifiedPaid.toLocaleString()}</strong></div>
+      <div class="totals-outstanding">
+        <span>{outstanding > 0 ? 'Balance due' : 'Balance'}</span>
+        <strong>KSh {outstanding.toLocaleString()}</strong>
+      </div>
     </div>
   </div>
 
@@ -185,11 +207,22 @@ const submitted = Astro.url.searchParams.get('submitted');
   .card{max-width:640px;margin-bottom:1.5rem;padding:1.4rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
   .card h2{margin:0 0 1rem;font-family:var(--display);font-size:1.05rem}
   .card h3{margin:0 0 .6rem;font-family:var(--display);font-size:.9rem}
+  .invoice-card{padding:1.8rem}
+  .invoice-meta{display:flex;justify-content:space-between;gap:1.5rem;padding-bottom:1.2rem;margin-bottom:1.2rem;border-bottom:1px solid var(--line)}
+  .invoice-meta div{display:grid;gap:.25rem}
+  .invoice-meta div:last-child{text-align:right}
+  .meta-label{color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+  .invoice-meta strong{font-size:.9rem}
+  .single-line-item{display:flex;justify-content:space-between;padding:.8rem 0;margin-bottom:.8rem;border-bottom:1px solid var(--line);font-size:.9rem;font-weight:700}
   .items-table{width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:1rem}
   .items-table th{text-align:left;color:var(--muted);font-size:.68rem;text-transform:uppercase;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
   .items-table td{padding:.6rem 0;border-bottom:1px solid var(--line)}
-  .totals{display:grid;gap:.5rem;margin-top:.5rem}
+  .items-table td:nth-child(2),.items-table td:nth-child(3),.items-table td:nth-child(4),
+  .items-table th:nth-child(2),.items-table th:nth-child(3),.items-table th:nth-child(4){text-align:right}
+  .totals{display:grid;gap:.5rem;margin-top:.5rem;max-width:320px;margin-left:auto}
   .totals div{display:flex;justify-content:space-between}
+  .totals-outstanding{margin-top:.4rem;padding-top:.8rem;border-top:2px solid var(--line);font-weight:800;font-size:1.05rem}
+  .totals-outstanding strong{font-family:var(--display);color:var(--deep-green)}
   .muted{color:var(--muted);font-size:.85rem}
   .muted.small{font-size:.76rem}
   .mpesa-status{margin:.4rem 0 0;font-size:.78rem;font-weight:700;color:var(--muted)}
