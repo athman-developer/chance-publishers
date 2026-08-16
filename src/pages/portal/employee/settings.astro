@@ -1,0 +1,67 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../lib/db';
+
+const user = Astro.locals.user!;
+const profile = await prisma.employeeProfile.findUnique({ where: { userId: user.id } });
+
+const pwError = Astro.url.searchParams.get('pwError');
+const pwSuccess = Astro.url.searchParams.get('pwSuccess');
+const paySuccess = Astro.url.searchParams.get('paySuccess');
+
+const PW_ERRORS: Record<string, string> = {
+  'too-short': 'New password must be at least 8 characters.',
+  mismatch: "New password and confirmation don't match.",
+  'wrong-current': 'Your current password is incorrect.',
+};
+---
+<PortalLayout title="Settings" user={user} section="employee">
+  <h1>Settings</h1>
+
+  <h2 class="section-title">Getting paid</h2>
+  <p class="muted">Tell us how you'd like to be paid for completed work. Admin will use these details when processing your pay.</p>
+  {paySuccess && <div class="banner ok">Payment details saved.</div>}
+  <form method="post" action="/api/portal/employee/settings/payment" class="card form-card">
+    <label>Payout method
+      <select name="payoutMethod">
+        <option value="" selected={!profile?.payoutMethod}>Choose one…</option>
+        <option value="MPESA" selected={profile?.payoutMethod === 'MPESA'}>M-Pesa</option>
+        <option value="BANK" selected={profile?.payoutMethod === 'BANK'}>Bank transfer</option>
+      </select>
+    </label>
+    <label>M-Pesa number<input type="tel" name="mpesaNumber" placeholder="07xx xxx xxx" value={profile?.mpesaNumber || ''} /></label>
+    <div class="grid-2">
+      <label>Bank name<input type="text" name="bankName" value={profile?.bankName || ''} /></label>
+      <label>Account name<input type="text" name="bankAccountName" value={profile?.bankAccountName || ''} /></label>
+      <label>Account number<input type="text" name="bankAccountNumber" value={profile?.bankAccountNumber || ''} /></label>
+      <label>Branch<input type="text" name="bankBranch" value={profile?.bankBranch || ''} /></label>
+    </div>
+    <button type="submit" class="btn-primary">Save payment details</button>
+  </form>
+
+  <h2 class="section-title">Change password</h2>
+  {pwSuccess && <div class="banner ok">Password changed successfully.</div>}
+  {pwError && <div class="banner error">{PW_ERRORS[pwError] || 'Could not change password.'}</div>}
+  <form method="post" action="/api/portal/account/change-password" class="card form-card">
+    <label>Current password<input type="password" name="currentPassword" required /></label>
+    <label>New password<input type="password" name="newPassword" required minlength="8" /></label>
+    <label>Confirm new password<input type="password" name="confirmPassword" required minlength="8" /></label>
+    <button type="submit" class="btn-primary">Update password</button>
+  </form>
+</PortalLayout>
+<style>
+  h1{font-family:var(--display);font-size:1.6rem;margin:0 0 1.5rem}
+  .section-title{font-family:var(--display);font-size:1.1rem;margin:0 0 .4rem}
+  .muted{color:var(--muted);font-size:.85rem;margin:0 0 1rem}
+  .banner{padding:1rem 1.2rem;border-radius:12px;font-size:.86rem;font-weight:700;margin-bottom:1rem}
+  .banner.ok{background:var(--soft-green);color:var(--deep-green)}
+  .banner.error{background:#fdecec;color:#b91c1c}
+  .card{padding:1.4rem;background:var(--surface);border:1px solid var(--line);border-radius:16px;margin-bottom:2.5rem}
+  .form-card{display:grid;gap:1rem}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800}
+  input,select{padding:.65rem .8rem;border:1px solid var(--line);border-radius:9px;font-size:.85rem;font-family:inherit}
+  .btn-primary{padding:.85rem;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 5px 0 var(--deep-green);width:max-content;padding-inline:1.6rem}
+  @media(max-width:700px){.grid-2{grid-template-columns:1fr}}
+</style>

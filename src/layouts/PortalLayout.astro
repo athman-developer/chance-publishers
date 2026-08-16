@@ -14,9 +14,11 @@ const NAV: Record<string, { href: string; label: string; icon: string; external?
     { href: '/printing-estimate', label: 'Printing estimate', icon: '🖨️', external: true },
     { href: '/launches', label: 'Request a launch', icon: '🎉', external: true },
     { href: '/publish', label: 'Publishing packages', icon: '📦', external: true },
+    { href: '/portal/author/settings', label: 'Settings', icon: '⚙️' },
   ],
   employee: [
     { href: '/portal/employee', label: 'Dashboard', icon: '🏠' },
+    { href: '/portal/employee/settings', label: 'Settings', icon: '⚙️' },
   ],
   admin: [
     { href: '/portal/admin', label: 'Dashboard', icon: '🏠' },
@@ -25,6 +27,7 @@ const NAV: Record<string, { href: string; label: string; icon: string; external?
     { href: '/portal/admin/launches', label: 'Launches', icon: '🎉' },
     { href: '/portal/admin/reminders', label: 'Reminders', icon: '⏰' },
     { href: '/portal/admin/reports', label: 'Reports', icon: '📊' },
+    { href: '/portal/admin/settings', label: 'Settings', icon: '⚙️' },
   ],
 };
 const navItems = section ? NAV[section] : [];

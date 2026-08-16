@@ -144,8 +144,19 @@ model EmployeeProfile {
   agreementStart   DateTime?
   agreementExpiry  DateTime?
   internalNotes    String?
+  payoutMethod        EmployeePayoutMethod?
+  mpesaNumber         String?
+  bankName            String?
+  bankAccountName     String?
+  bankAccountNumber   String?
+  bankBranch          String?
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
+}
+
+enum EmployeePayoutMethod {
+  MPESA
+  BANK
 }
 
 enum AgreementStatus {
