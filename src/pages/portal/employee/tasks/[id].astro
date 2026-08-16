@@ -83,10 +83,11 @@ const shouldPoll = ['SUBMITTED_FOR_REVIEW', 'APPROVED'].includes(task.status);
   )}
 
   {(task.status === 'ACCEPTED' || task.status === 'IN_PROGRESS' || task.status === 'CHANGES_REQUESTED') && (
-    <form method="post" action="/api/portal/employee/tasks/submit" enctype="multipart/form-data" class="action-card" data-max-upload-form>
+    <form method="post" action="/api/portal/employee/tasks/submit" enctype="multipart/form-data" class="action-card" data-chunked-upload-form>
       <input type="hidden" name="taskId" value={task.id} />
-      <label>Upload your {config?.label.toLowerCase() || 'deliverable'}<input type="file" name="deliverable" required /><small class="muted">Max 4MB</small></label>
+      <label>Upload your {config?.label.toLowerCase() || 'deliverable'}<input type="file" name="deliverable" required /><small class="muted">Max 20MB</small></label>
       <button type="submit" class="btn-primary">Submit for review</button>
+      <p class="upload-status" data-upload-status></p>
     </form>
   )}
 
@@ -117,21 +118,68 @@ const shouldPoll = ['SUBMITTED_FOR_REVIEW', 'APPROVED'].includes(task.status);
   label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800}
   input[type="file"]{padding:.6rem;border:1px solid var(--line);border-radius:9px;font-size:.85rem}
   .btn-primary{padding:.85rem;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 5px 0 var(--deep-green)}
+  .upload-status{margin:0;font-size:.78rem;font-weight:700;color:var(--muted)}
   @media(max-width:700px){.grid-2{grid-template-columns:1fr}}
 </style>
 <script>
   // Netlify Functions reject request bodies over ~6MB before our server code
-  // ever runs, so catch oversized files client-side instead.
-  const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
-  document.querySelectorAll<HTMLFormElement>('[data-max-upload-form]').forEach((form) => {
-    form.addEventListener('submit', (e) => {
-      const fileInput = form.querySelector<HTMLInputElement>('input[type="file"]');
-      const file = fileInput?.files?.[0];
-      if (file && file.size > MAX_UPLOAD_BYTES) {
-        e.preventDefault();
-        alert(`That file is ${(file.size / (1024 * 1024)).toFixed(1)}MB, which is over the 4MB limit. Please compress it or split it into parts.`);
+  // ever runs, so files bigger than one chunk are split client-side and
+  // uploaded piece by piece to submit-chunk, then stitched back together
+  // server-side in submit-finalize. Small files still use the plain form post.
+  const CHUNK_SIZE = 4 * 1024 * 1024;
+  const MAX_CHUNKED_BYTES = 20 * 1024 * 1024;
+
+  const form = document.querySelector<HTMLFormElement>('[data-chunked-upload-form]');
+  form?.addEventListener('submit', async (e) => {
+    const fileInput = form.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = fileInput?.files?.[0];
+    if (!file || file.size <= CHUNK_SIZE) return; // small enough for a normal post
+
+    e.preventDefault();
+    const statusEl = form.querySelector<HTMLElement>('[data-upload-status]');
+    const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    const taskId = (form.querySelector('input[name="taskId"]') as HTMLInputElement).value;
+
+    if (file.size > MAX_CHUNKED_BYTES) {
+      alert(`That file is ${(file.size / (1024 * 1024)).toFixed(1)}MB, which is over the 20MB limit. Please compress it or split it into parts.`);
+      return;
+    }
+
+    submitBtn && (submitBtn.disabled = true);
+    const uploadId = crypto.randomUUID();
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+    try {
+      for (let i = 0; i < totalChunks; i++) {
+        const chunkBlob = file.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+        const fd = new FormData();
+        fd.append('taskId', taskId);
+        fd.append('uploadId', uploadId);
+        fd.append('chunkIndex', String(i));
+        fd.append('totalChunks', String(totalChunks));
+        fd.append('chunk', chunkBlob, file.name);
+        if (statusEl) statusEl.textContent = `Uploading part ${i + 1} of ${totalChunks}…`;
+        const res = await fetch('/api/portal/employee/tasks/submit-chunk', { method: 'POST', body: fd });
+        const result = await res.json();
+        if (!result.ok) throw new Error(result.error || 'chunk-failed');
       }
-    });
+
+      if (statusEl) statusEl.textContent = 'Finalizing upload…';
+      const finalizeFd = new FormData();
+      finalizeFd.append('taskId', taskId);
+      finalizeFd.append('uploadId', uploadId);
+      finalizeFd.append('totalChunks', String(totalChunks));
+      finalizeFd.append('filename', file.name);
+      finalizeFd.append('contentType', file.type);
+      const finalizeRes = await fetch('/api/portal/employee/tasks/submit-finalize', { method: 'POST', body: finalizeFd });
+      const finalizeResult = await finalizeRes.json();
+      if (!finalizeResult.ok) throw new Error(finalizeResult.error || 'finalize-failed');
+      window.location.href = finalizeResult.redirect || `/portal/employee/tasks/${taskId}`;
+    } catch {
+      alert('Upload failed. Please check your connection and try again.');
+      submitBtn && (submitBtn.disabled = false);
+      if (statusEl) statusEl.textContent = '';
+    }
   });
 </script>
 <script define:vars={{ shouldPoll }}>
