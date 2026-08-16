@@ -17,8 +17,8 @@ const rows = employees.map((e) => {
   const overdue = active.filter((t) => t.dueDate && t.dueDate < now);
   const completed = e.assignedTasks.filter((t) => t.status === 'COMPLETED');
   return {
-    name: e.employeeProfile?.jobTitle || e.partnerProfile?.companyName || e.email,
-    staffId: e.employeeProfile?.staffId || '—',
+    name: e.employeeProfile?.fullName || e.partnerProfile?.companyName || e.email,
+    jobTitle: e.employeeProfile?.jobTitle || '—',
     active: active.length,
     overdue: overdue.length,
     completed: completed.length,
@@ -27,8 +27,8 @@ const rows = employees.map((e) => {
 
 if (Astro.url.searchParams.get('format') === 'csv') {
   const csv = toCsv(
-    ['Name', 'Staff ID', 'Active Tasks', 'Overdue', 'Completed'],
-    rows.map((r) => [r.name, r.staffId, r.active, r.overdue, r.completed]),
+    ['Name', 'Job Title', 'Active Tasks', 'Overdue', 'Completed'],
+    rows.map((r) => [r.name, r.jobTitle, r.active, r.overdue, r.completed]),
   );
   return new Response(csv, { headers: { 'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename="employee-workload.csv"' } });
 }
@@ -39,12 +39,12 @@ if (Astro.url.searchParams.get('format') === 'csv') {
   {rows.length === 0 ? <p class="muted">No employees yet.</p> : (
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Name</th><th>Staff ID</th><th>Active</th><th>Overdue</th><th>Completed</th></tr></thead>
+        <thead><tr><th>Name</th><th>Job Title</th><th>Active</th><th>Overdue</th><th>Completed</th></tr></thead>
         <tbody>
           {rows.map((r) => (
             <tr>
               <td>{r.name}</td>
-              <td>{r.staffId}</td>
+              <td>{r.jobTitle}</td>
               <td>{r.active}</td>
               <td>{r.overdue > 0 ? <span class="status-chip warn">{r.overdue}</span> : '0'}</td>
               <td>{r.completed}</td>

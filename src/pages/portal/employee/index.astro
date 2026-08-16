@@ -4,9 +4,7 @@ import PortalLayout from '../../../layouts/PortalLayout.astro';
 import { prisma } from '../../../lib/db';
 
 const user = Astro.locals.user!;
-const displayName = user.employeeProfile?.jobTitle
-  ? `${user.employeeProfile.jobTitle} ${user.employeeProfile.staffId}`
-  : user.partnerProfile?.contactPerson || user.email;
+const displayName = user.employeeProfile?.fullName || user.partnerProfile?.contactPerson || user.email;
 
 const tasks = await prisma.task.findMany({
   where: { assignedToUserId: user.id, status: { notIn: ['COMPLETED', 'CANCELLED'] } },

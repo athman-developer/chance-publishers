@@ -47,6 +47,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       employeeProfile: {
         create: {
           staffId,
+          fullName,
           jobTitle: jobTitle || null,
           designation: designation === 'EXTERNAL' ? 'EXTERNAL' : 'INTERNAL',
         },

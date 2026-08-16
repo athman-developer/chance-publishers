@@ -24,8 +24,8 @@ export async function listAssignableEmployees() {
 
       return {
         id: user.id,
-        name: user.employeeProfile?.jobTitle
-          ? `${user.employeeProfile.staffId} — ${user.employeeProfile.jobTitle}`
+        name: user.employeeProfile
+          ? `${user.employeeProfile.fullName || user.email}${user.employeeProfile.jobTitle ? ` — ${user.employeeProfile.jobTitle}` : ''}`
           : user.partnerProfile?.contactPerson || user.email,
         email: user.email,
         activeCount,

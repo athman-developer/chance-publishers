@@ -135,6 +135,7 @@ model EmployeeProfile {
   userId           String              @unique
   user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   staffId          String              @unique
+  fullName         String?
   jobTitle         String?
   altPhone         String?
   status           EmployeeStatus      @default(ACTIVE)

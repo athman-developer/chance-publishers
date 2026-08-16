@@ -145,9 +145,9 @@ const activity = await prisma.activityEvent.findMany({ where: { projectId: id },
             const showPhone = level === 'PHONE' || level === 'PHONE_AND_EMAIL';
             return (
             <div class="team-card">
-              <div class="avatar">{(member.employeeProfile?.jobTitle || member.partnerProfile?.contactPerson || member.email).charAt(0)}</div>
+              <div class="avatar">{(member.employeeProfile?.fullName || member.partnerProfile?.contactPerson || member.email).charAt(0)}</div>
               <div>
-                <strong>{member.employeeProfile?.staffId ? `Staff ${member.employeeProfile.staffId}` : member.partnerProfile?.companyName || 'Team member'}</strong>
+                <strong>{member.employeeProfile?.fullName || member.partnerProfile?.companyName || 'Team member'}</strong>
                 <small>{member.employeeProfile?.jobTitle || 'Publishing team'}</small>
                 {showEmail && <small class="contact-line">{member.email}</small>}
                 {showPhone && member.phone && <small class="contact-line">{member.phone}</small>}

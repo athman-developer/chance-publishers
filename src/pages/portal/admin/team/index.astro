@@ -48,12 +48,12 @@ const sent = Astro.url.searchParams.get('sent');
     <p class="muted">No staff accounts yet.</p>
   ) : (
     <table class="table">
-      <thead><tr><th>Name / Email</th><th>Staff ID</th><th>Job title</th><th>Type</th><th>Status</th></tr></thead>
+      <thead><tr><th>Name</th><th>Email</th><th>Job title</th><th>Type</th><th>Status</th></tr></thead>
       <tbody>
         {employees.map((e) => (
           <tr>
-            <td>{e.employeeProfile?.jobTitle ? e.email : e.email}</td>
-            <td>{e.employeeProfile?.staffId || '—'}</td>
+            <td>{e.employeeProfile?.fullName || '—'}</td>
+            <td>{e.email}</td>
             <td>{e.employeeProfile?.jobTitle || '—'}</td>
             <td>{e.employeeProfile?.designation || '—'}</td>
             <td>{e.status}</td>

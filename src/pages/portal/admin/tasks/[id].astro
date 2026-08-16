@@ -19,8 +19,8 @@ const task = await prisma.task.findUnique({
 if (!task) return Astro.redirect('/portal/admin');
 
 const config = taskTypeConfig(task.taskType);
-const assigneeName = task.assignedToUser?.employeeProfile?.jobTitle
-  ? `${task.assignedToUser.employeeProfile.jobTitle} (${task.assignedToUser.employeeProfile.staffId})`
+const assigneeName = task.assignedToUser?.employeeProfile?.fullName
+  ? `${task.assignedToUser.employeeProfile.fullName}${task.assignedToUser.employeeProfile.jobTitle ? ` (${task.assignedToUser.employeeProfile.jobTitle})` : ''}`
   : task.assignedToUser?.email;
 ---
 <PortalLayout title={task.taskNumber} user={user} section="admin">
