@@ -10,6 +10,10 @@
 // other form fields in the same request.
 export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024; // 4MB
 
+// Manuscripts are chunked client-side (see lib/chunked-upload.ts) so they
+// can safely exceed the ~6MB per-request ceiling above.
+export const MAX_MANUSCRIPT_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB
+
 export const DOCUMENT_TYPES = new Set([
   'application/pdf',
   'application/msword',
