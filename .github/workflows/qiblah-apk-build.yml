@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - qiblah-apk-build
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -153,14 +156,13 @@ jobs:
           import android.location.Location;
           import android.location.LocationListener;
           import android.location.LocationManager;
+          import android.os.Build;
           import android.os.Bundle;
           import android.os.VibrationEffect;
           import android.os.Vibrator;
-          import android.provider.Settings;
           import android.view.Surface;
           import android.view.View;
           import android.view.Window;
-          import android.view.WindowManager;
 
           import java.util.Locale;
 
@@ -541,11 +543,16 @@ jobs:
                   return "Turn left " + amount + "°";
               }
 
+              @SuppressWarnings("deprecation")
               private void vibrateOnce() {
                   try {
                       Vibrator vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
                       if (vibrator != null && vibrator.hasVibrator()) {
-                          vibrator.vibrate(VibrationEffect.createOneShot(90, VibrationEffect.DEFAULT_AMPLITUDE));
+                          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                              vibrator.vibrate(VibrationEffect.createOneShot(90, VibrationEffect.DEFAULT_AMPLITUDE));
+                          } else {
+                              vibrator.vibrate(90);
+                          }
                       }
                   } catch (Exception ignored) { }
               }
