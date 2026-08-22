@@ -1,0 +1,73 @@
+name: Build and Return Qiblah APK
+
+on:
+  push:
+    branches:
+      - qiblah-apk-build
+    paths-ignore:
+      - 'artifacts/**'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private build branch
+        uses: actions/checkout@v4
+        with:
+          ref: qiblah-apk-build
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Install Android SDK 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Fetch Qiblah source
+        run: git clone --depth 1 --branch qiblah-apk-build https://github.com/athman-developer/myportfolio.git qiblah_source
+
+      - name: Compile APK and capture output
+        shell: bash
+        run: |
+          set +e
+          cd qiblah_source/qiblah_build
+          gradle --no-daemon :app:assembleDebug 2>&1 | tee ../../qiblah-build.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          cd ../..
+          echo "$BUILD_STATUS" > qiblah-build-status-code.txt
+          if [ "$BUILD_STATUS" -eq 0 ] && [ -f qiblah_source/qiblah_build/app/build/outputs/apk/debug/app-debug.apk ]; then
+            cp qiblah_source/qiblah_build/app/build/outputs/apk/debug/app-debug.apk QiblahDirection.apk
+            echo SUCCESS > qiblah-status.txt
+          else
+            echo FAILED > qiblah-status.txt
+          fi
+          exit 0
+
+      - name: Store build result on private branch
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts
+          cp qiblah-status.txt artifacts/status.txt
+          cp qiblah-build-status-code.txt artifacts/status-code.txt
+          cp qiblah-build.log artifacts/build.log
+          if [ -f QiblahDirection.apk ]; then
+            sha256sum QiblahDirection.apk > artifacts/QiblahDirection.sha256
+            stat -c '%s' QiblahDirection.apk > artifacts/QiblahDirection.size
+            base64 -w0 QiblahDirection.apk | split -b 700000 - artifacts/QiblahDirection.apk.b64.part-
+          fi
+          git config user.name "Qiblah APK Builder"
+          git config user.email "actions@github.com"
+          git add artifacts
+          git commit -m "Store Qiblah APK build result [skip ci]" || true
+          git push origin HEAD:qiblah-apk-build
