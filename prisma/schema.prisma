@@ -258,8 +258,43 @@ model BookProject {
   messages         Message[]
   activityEvents   ActivityEvent[]
   contactShareGrants ContactShareGrant[]
+  distributionListings DistributionListing[]
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
+}
+
+enum DistributionPlatform {
+  AMAZON_KDP
+  GOOGLE_PLAY_BOOKS
+  OTHER
+}
+
+enum DistributionStatus {
+  NOT_STARTED
+  AUTHOR_INVITED_ADMIN
+  ADMIN_ACCESS_CONFIRMED
+  UPLOADED
+  LIVE
+}
+
+// Tracks Amazon KDP (and future platform) listings. We never store an
+// author's platform password — the author creates their own account and
+// invites our team's email as an authorized user with upload permissions
+// via the platform's own collaborator feature, so credentials never change
+// hands. This model just tracks where that process is up to.
+model DistributionListing {
+  id           String               @id @default(cuid())
+  projectId    String
+  project      BookProject          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  platform     DistributionPlatform
+  status       DistributionStatus   @default(NOT_STARTED)
+  listingUrl   String?
+  asin         String?
+  notes        String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@unique([projectId, platform])
 }
 
 model BookContributor {

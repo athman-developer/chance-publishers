@@ -25,6 +25,7 @@ async function main() {
     { key: 'QUOTATION_VALIDITY_DAYS', value: '14', description: 'Default number of days a quotation stays valid before expiring.' },
     { key: 'DEFAULT_CLIENT_PAYMENT_TERMS', value: '70/30', description: 'Default deposit/balance split for client publishing packages.' },
     { key: 'LAUNCH_SUGGESTED_PRICE_KES', value: '50000', description: 'Suggested starting point for a launch organisation quotation — not compulsory, Admin can change per request.' },
+    { key: 'KDP_TEAM_EMAIL', value: 'chancepublishersltd@gmail.com', description: 'Email address authors invite as an authorized Amazon KDP / distribution-platform user so staff never need their password.' },
   ];
   for (const setting of settings) {
     await prisma.systemSetting.upsert({

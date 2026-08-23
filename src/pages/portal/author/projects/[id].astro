@@ -9,7 +9,13 @@ const { id } = Astro.params;
 
 const project = await prisma.bookProject.findUnique({
   where: { id },
-  include: { package: true, contributors: true, ndaAgreement: true, fileAssets: { where: { kind: 'MANUSCRIPT' }, orderBy: { version: 'desc' } } },
+  include: {
+    package: true,
+    contributors: true,
+    ndaAgreement: true,
+    fileAssets: { where: { kind: 'MANUSCRIPT' }, orderBy: { version: 'desc' } },
+    distributionListings: true,
+  },
 });
 
 if (!project || project.authorId !== user.id) {
@@ -265,6 +271,16 @@ const activity = await prisma.activityEvent.findMany({ where: { projectId: id },
       </div>
     )}
 
+    <div class="distribution-block">
+      <div class="distribution-heading">
+        <h2>Amazon &amp; online platforms</h2>
+        <a class="btn-secondary" href={`/portal/author/projects/${id}/distribution`}>
+          {project.distributionListings.length > 0 ? 'View distribution status →' : 'Get your book on Amazon →'}
+        </a>
+      </div>
+      <p class="muted">We can list your finished book on Amazon and other online platforms — you keep your own account and full control, no password ever needed from you.</p>
+    </div>
+
     {activity.length > 0 && (
       <div class="timeline-block">
         <h2>Activity</h2>
@@ -355,6 +371,11 @@ const activity = await prisma.activityEvent.findMany({ where: { projectId: id },
   .timeline small{color:var(--muted);font-size:.68rem;font-weight:700}
   .timeline span{font-size:.85rem}
   .manuscript-block label small.muted{font-weight:600;font-size:.72rem}
+  .distribution-block{margin-top:2rem;padding:1.5rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .distribution-heading{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.6rem}
+  .distribution-block h2{margin:0;font-family:var(--display);font-size:1.15rem}
+  .distribution-block .muted{margin:0}
+  .btn-secondary{display:inline-block;padding:.65rem 1rem;border-radius:10px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-weight:800;font-size:.82rem;white-space:nowrap}
   .upload-status{margin:.4rem 0 0;font-size:.78rem;font-weight:700;color:var(--muted)}
 </style>
 <script>

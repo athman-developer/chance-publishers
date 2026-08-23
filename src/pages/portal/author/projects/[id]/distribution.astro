@@ -1,0 +1,98 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../../../lib/db';
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+
+const project = await prisma.bookProject.findUnique({
+  where: { id },
+  include: { distributionListings: true },
+});
+if (!project || project.authorId !== user.id) return Astro.redirect('/portal/author');
+
+const teamEmailSetting = await prisma.systemSetting.findUnique({ where: { key: 'KDP_TEAM_EMAIL' } });
+const teamEmail = teamEmailSetting?.value || 'chancepublishersltd@gmail.com';
+
+const kdp = project.distributionListings.find((d) => d.platform === 'AMAZON_KDP');
+const confirmed = Astro.url.searchParams.get('confirmed') === '1';
+
+const STATUS_LABEL: Record<string, string> = {
+  NOT_STARTED: 'Not started',
+  AUTHOR_INVITED_ADMIN: 'Invite sent — waiting for our team to accept',
+  ADMIN_ACCESS_CONFIRMED: 'Our team has access — ready to upload',
+  UPLOADED: 'Uploaded to Amazon — awaiting review',
+  LIVE: 'Live on Amazon',
+};
+---
+<PortalLayout title={`Amazon & Online Platforms — ${project.title}`} user={user} section="author">
+  <a class="back-link" href={`/portal/author/projects/${id}`}>← {project.title}</a>
+  <h1>Amazon &amp; online platforms</h1>
+  <p class="intro">We can list your finished book for sale on Amazon (Kindle Direct Publishing) and other online platforms. Your book stays under your own account, at your own name — we just need permission to manage the listing, not your password.</p>
+
+  {confirmed && <div class="banner ok">Thanks — we've been notified and will confirm once our team has access.</div>}
+
+  <div class="card">
+    <h2>Status</h2>
+    <div class="status-row">
+      <span>Amazon KDP</span>
+      <span class={`status-chip ${(kdp?.status || 'NOT_STARTED').toLowerCase()}`}>{STATUS_LABEL[kdp?.status || 'NOT_STARTED']}</span>
+    </div>
+    {kdp?.listingUrl && <a class="btn-secondary" href={kdp.listingUrl} target="_blank" rel="noopener">View your Amazon listing ↗</a>}
+  </div>
+
+  <div class="card">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li>
+        <b>Create your own free Amazon KDP account</b>
+        <p>Go to <a href="https://kdp.amazon.com" target="_blank" rel="noopener">kdp.amazon.com</a> and sign up using your own email address. This account, and any royalties your book earns, belong entirely to you.</p>
+      </li>
+      <li>
+        <b>Invite our team as an authorized user — never share your password</b>
+        <p>In KDP, go to <b>Account settings → Users and Roles</b> (sometimes called "Bookshelf access"), and invite this email with permission to manage titles:</p>
+        <div class="team-email-row">
+          <code>{teamEmail}</code>
+        </div>
+        <p class="muted small">This gives us permission to upload and manage your book listing without ever seeing or needing your password.</p>
+      </li>
+      <li>
+        <b>Confirm below once you've sent the invite</b>
+        <p>We'll get notified, accept the invite from our side, and take it from there — uploading your manuscript, cover, description and pricing to Amazon.</p>
+      </li>
+    </ol>
+
+    {(!kdp || kdp.status === 'NOT_STARTED') && (
+      <form method="post" action="/api/portal/author/distribution/confirm-invite">
+        <input type="hidden" name="projectId" value={id} />
+        <input type="hidden" name="platform" value="AMAZON_KDP" />
+        <button type="submit" class="btn-primary">I've sent the invite</button>
+      </form>
+    )}
+  </div>
+
+  <p class="muted small">Prefer we handle the KDP signup conversation together, or want this done for a different platform (Google Play Books, etc.)? Just message our team from your project page.</p>
+</PortalLayout>
+<style>
+  .back-link{display:inline-block;margin-bottom:1rem;color:var(--muted);text-decoration:none;font-weight:700;font-size:.82rem}
+  h1{margin:0 0 .6rem;font-family:var(--display);font-size:1.8rem}
+  .intro{max-width:640px;color:var(--muted);line-height:1.7;margin:0 0 1.5rem}
+  .banner{padding:1rem 1.2rem;border-radius:12px;font-size:.88rem;font-weight:700;margin-bottom:1.5rem}
+  .banner.ok{background:var(--soft-green);color:var(--deep-green)}
+  .card{max-width:640px;padding:1.6rem;background:var(--surface);border:1px solid var(--line);border-radius:16px;margin-bottom:1.5rem}
+  .card h2{margin:0 0 1rem;font-family:var(--display);font-size:1.1rem}
+  .status-row{display:flex;justify-content:space-between;align-items:center;padding:.8rem 1rem;background:var(--surface-2);border-radius:10px;font-weight:700;margin-bottom:.8rem}
+  .status-chip{padding:.35rem .7rem;border-radius:99px;background:var(--yellow);color:#172315;font-size:.68rem;font-weight:800;white-space:nowrap}
+  .status-chip.live,.status-chip.uploaded,.status-chip.admin_access_confirmed{background:var(--soft-green);color:var(--deep-green)}
+  .status-chip.not_started{background:var(--surface-2);color:var(--muted)}
+  .btn-secondary{display:inline-block;padding:.6rem .9rem;border-radius:9px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-weight:800;font-size:.8rem}
+  .steps{margin:0;padding-left:1.2rem;display:grid;gap:1.3rem}
+  .steps li b{display:block;font-family:var(--display);font-size:.95rem;margin-bottom:.3rem}
+  .steps li p{margin:0 0 .5rem;color:var(--muted);line-height:1.6;font-size:.9rem}
+  .team-email-row{padding:.7rem 1rem;background:var(--surface-2);border-radius:9px;margin:.5rem 0}
+  .team-email-row code{font-size:.9rem;font-weight:700;color:var(--deep-green)}
+  .muted{color:var(--muted)}
+  .muted.small{font-size:.78rem}
+  .btn-primary{margin-top:.5rem;padding:.85rem 1.4rem;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 5px 0 var(--deep-green)}
+</style>

@@ -19,9 +19,19 @@ const project = await prisma.bookProject.findUnique({
     invoices: { include: { payments: true }, orderBy: { createdAt: 'desc' } },
     printJobs: { orderBy: { createdAt: 'desc' } },
     fileAssets: { where: { kind: 'MANUSCRIPT' }, orderBy: { version: 'desc' } },
+    distributionListings: true,
   },
 });
 if (!project) return Astro.redirect('/portal/admin');
+
+const kdpListing = project.distributionListings.find((d) => d.platform === 'AMAZON_KDP');
+const DISTRIBUTION_STATUS_LABEL: Record<string, string> = {
+  NOT_STARTED: 'Not started',
+  AUTHOR_INVITED_ADMIN: 'Author sent invite — needs accepting',
+  ADMIN_ACCESS_CONFIRMED: 'Access confirmed — ready to upload',
+  UPLOADED: 'Uploaded — awaiting Amazon review',
+  LIVE: 'Live on Amazon',
+};
 
 const employees = await listAssignableEmployees();
 const error = Astro.url.searchParams.get('error');
@@ -81,6 +91,30 @@ const updateSent = Astro.url.searchParams.get('updateSent');
       <label>Upload manuscript on the client's behalf<input type="file" name="manuscript" accept=".pdf,.doc,.docx,.rtf,.odt" required /><small class="muted">Max 10MB</small></label>
       <button type="submit" class="btn-primary">Upload manuscript</button>
       <p class="upload-status" data-upload-status></p>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Amazon &amp; online platforms</h2>
+    <p class="muted">The author invites our team as an authorized user on their own Amazon KDP account — no password ever changes hands. Update status here once you've accepted the invite and uploaded their book.</p>
+    <div class="distribution-status-row">
+      <span>Amazon KDP</span>
+      <span class={`status-chip ${(kdpListing?.status || 'NOT_STARTED').toLowerCase()}`}>{DISTRIBUTION_STATUS_LABEL[kdpListing?.status || 'NOT_STARTED']}</span>
+    </div>
+    <form method="post" action="/api/portal/admin/distribution/update">
+      <input type="hidden" name="projectId" value={id} />
+      <input type="hidden" name="platform" value="AMAZON_KDP" />
+      <label>Status
+        <select name="status">
+          {Object.entries(DISTRIBUTION_STATUS_LABEL).map(([key, label]) => (
+            <option value={key} selected={key === (kdpListing?.status || 'NOT_STARTED')}>{label}</option>
+          ))}
+        </select>
+      </label>
+      <label>Listing URL (once live)<input type="url" name="listingUrl" value={kdpListing?.listingUrl || ''} placeholder="https://amazon.com/dp/..." /></label>
+      <label>ASIN<input type="text" name="asin" value={kdpListing?.asin || ''} placeholder="B0XXXXXXX" /></label>
+      <label>Notes<textarea name="notes" rows="2">{kdpListing?.notes || ''}</textarea></label>
+      <button type="submit" class="btn-primary">Save distribution status</button>
     </form>
   </div>
 
@@ -358,6 +392,9 @@ const updateSent = Astro.url.searchParams.get('updateSent');
   .btn-verify-small{padding:.5rem .8rem;border:0;border-radius:8px;background:var(--green);color:#fff;font-weight:800;font-size:.72rem;cursor:pointer}
   .btn-reject-small{padding:.5rem .8rem;border:1px solid var(--line);border-radius:8px;background:transparent;color:#b91c1c;font-weight:800;font-size:.72rem;cursor:pointer}
   .status-chip.small{padding:.3rem .6rem;font-size:.66rem}
+  .status-chip.not_started{background:var(--surface-2);color:var(--muted)}
+  .status-chip.author_invited_admin{background:#fff3cd;color:#8a6800}
+  .distribution-status-row{display:flex;justify-content:space-between;align-items:center;padding:.7rem 1rem;background:var(--surface-2);border-radius:9px;font-weight:700;margin-bottom:1rem}
   .banner{padding:1rem 1.2rem;border-radius:12px;font-size:.88rem;font-weight:700;margin-bottom:1.5rem}
   .banner.error{background:#fdecec;color:#b91c1c}
   .banner.ok{background:var(--soft-green);color:var(--deep-green)}
