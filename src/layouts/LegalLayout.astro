@@ -1,0 +1,41 @@
+---
+import InnerPage from './InnerPage.astro';
+interface Props {
+  title: string;
+  description: string;
+  updated: string;
+}
+const { title, description, updated } = Astro.props;
+---
+<InnerPage title={title} description={description}>
+  <section class="legal-hero page-hero">
+    <a class="legal-back" href="/legal">← Legal &amp; Safety</a>
+    <small>LEGAL &amp; SAFETY</small>
+    <h1>{title}</h1>
+    <p class="legal-updated">Last updated {updated}</p>
+  </section>
+  <article class="legal-prose">
+    <slot />
+    <div class="legal-contact-note">
+      <p>Questions about this policy? Contact us at <a href="mailto:chancepublishersltd@gmail.com">chancepublishersltd@gmail.com</a> or <a href="tel:+254758305622">+254 758 305 622</a>.</p>
+    </div>
+  </article>
+</InnerPage>
+<style is:global>
+  .legal-back{display:block;margin-bottom:1.2rem;color:rgba(255,255,255,.82);text-decoration:none;font-weight:700;font-size:.85rem}
+  .legal-updated{margin-top:.6rem!important;font-size:.85rem!important;color:var(--yellow)!important;font-weight:700}
+  .legal-prose{max-width:760px;margin:0 auto;padding:clamp(2.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 5rem;line-height:1.8;color:var(--text)}
+  .legal-prose h2{font-family:var(--display);font-size:1.4rem;margin:2.2rem 0 .8rem;color:var(--deep-green)}
+  html[data-theme="dark"] .legal-prose h2{color:var(--yellow)}
+  .legal-prose h3{font-family:var(--display);font-size:1.1rem;margin:1.6rem 0 .6rem}
+  .legal-prose p{margin:0 0 1rem;color:var(--text)}
+  .legal-prose ul,.legal-prose ol{margin:0 0 1.2rem;padding-left:1.3rem;display:grid;gap:.5rem}
+  .legal-prose li{color:var(--text)}
+  .legal-prose strong{color:var(--deep-green)}
+  html[data-theme="dark"] .legal-prose strong{color:var(--yellow)}
+  .legal-prose a{color:var(--green);font-weight:700}
+  .legal-prose .legal-callout{padding:1.2rem 1.4rem;margin:1.5rem 0;background:var(--soft-green);border-radius:14px;border:1px solid var(--line)}
+  .legal-prose .legal-callout p{margin:0;color:var(--text)}
+  .legal-contact-note{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--line);font-size:.85rem;color:var(--muted)}
+  .legal-contact-note p{margin:0;color:var(--muted)}
+</style>

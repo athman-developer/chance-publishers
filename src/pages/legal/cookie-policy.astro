@@ -1,0 +1,30 @@
+---
+import LegalLayout from '../../layouts/LegalLayout.astro';
+---
+<LegalLayout title="Cookie Policy" description="The cookies and local storage used on the Chance Publishers website and author portal." updated="18 August 2026">
+  <p>We keep cookie use on our site deliberately minimal — we don't run advertising or tracking cookies. Here is exactly what we do use.</p>
+
+  <h2>Essential cookies</h2>
+  <table class="legal-cookie-table">
+    <thead><tr><th>Name</th><th>Purpose</th><th>Duration</th></tr></thead>
+    <tbody>
+      <tr><td><code>cp_session</code></td><td>Keeps you securely signed in to the author, employee or admin portal. Without it, the portal cannot function.</td><td>14 days, or until you sign out</td></tr>
+    </tbody>
+  </table>
+  <p>This cookie is strictly necessary for the portal to work and cannot be switched off if you wish to use it — declining it simply means you won't be able to stay signed in.</p>
+
+  <h2>Local storage</h2>
+  <p>We also use your browser's local storage (not a cookie, but a similar small piece of storage kept on your device) to remember your light/dark theme preference across visits. This never leaves your device and is not accessible to us.</p>
+
+  <h2>What we don't use</h2>
+  <p>We do not use advertising cookies, third-party tracking pixels, or analytics cookies that build a profile of you across other websites. Our Google Fonts stylesheet loads fonts only and does not set tracking cookies.</p>
+
+  <h2>Managing cookies</h2>
+  <p>You can clear or block cookies at any time through your browser's settings. Since our only cookie is essential to signing in, blocking it will prevent you from using the author, employee or admin portal, but the public parts of our website will still work normally.</p>
+</LegalLayout>
+<style>
+  .legal-cookie-table{width:100%;border-collapse:collapse;margin:1rem 0 1.5rem;font-size:.88rem}
+  .legal-cookie-table th{text-align:left;padding:.6rem .8rem;background:var(--surface-2);border-bottom:2px solid var(--line);font-family:var(--display);font-size:.78rem}
+  .legal-cookie-table td{padding:.7rem .8rem;border-bottom:1px solid var(--line);vertical-align:top}
+  .legal-cookie-table code{padding:.15rem .4rem;background:var(--surface-2);border-radius:5px;font-size:.82rem}
+</style>
