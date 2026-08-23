@@ -13,7 +13,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect, clientAddress
   const next = String(data.get('next') || '/portal');
 
   const rateLimitKey = `${clientAddress}:${email}`;
-  if (isRateLimited(rateLimitKey)) {
+  if (await isRateLimited(rateLimitKey)) {
     return redirect('/portal/login?error=rate-limited');
   }
 
@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect, clientAddress
     return redirect('/portal/login?error=account-inactive');
   }
 
-  resetRateLimit(rateLimitKey);
+  await resetRateLimit(rateLimitKey);
   await createSession(user.id, cookies);
   return redirect(next.startsWith('/portal') ? next : '/portal');
 };

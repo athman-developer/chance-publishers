@@ -69,9 +69,7 @@ const localBusinessSchema = {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&family=Patrick+Hand&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
     <script type="application/ld+json" set:html={JSON.stringify(localBusinessSchema)}></script>
-    <script is:inline>
-      try { const saved = localStorage.getItem('chance-theme'); if (saved) document.documentElement.dataset.theme = saved; } catch {}
-    </script>
+    <script is:inline src="/theme-init.js"></script>
   </head>
   <body>
     <Navbar />

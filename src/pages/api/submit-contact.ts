@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
     }
 
-    if (isRateLimited(`contact:${clientAddress}`)) {
+    if (await isRateLimited(`contact:${clientAddress}`)) {
       return new Response(JSON.stringify({ ok: false, error: 'rate-limited' }), { status: 429 });
     }
 

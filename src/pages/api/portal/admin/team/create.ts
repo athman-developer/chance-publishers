@@ -6,6 +6,7 @@ import { Resend } from 'resend';
 import { prisma } from '../../../../../lib/db';
 import { hashPassword } from '../../../../../lib/auth/password';
 import { sendSms, normalizeKenyanPhone } from '../../../../../lib/sms';
+import { userHasRole } from '../../../../../lib/auth/session';
 
 function generatePassword(): string {
   return randomBytes(9).toString('base64url');
@@ -13,7 +14,9 @@ function generatePassword(): string {
 
 export const POST: APIRoute = async ({ request, locals, redirect }) => {
   const admin = locals.user;
-  if (!admin) return redirect('/portal/login');
+  if (!admin || !(userHasRole(admin, 'ADMIN') || userHasRole(admin, 'SUPER_ADMIN'))) {
+    return redirect('/portal/login');
+  }
 
   const data = await request.formData();
   const fullName = String(data.get('fullName') || '').trim();
