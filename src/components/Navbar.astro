@@ -1,3 +1,6 @@
+---
+import { categories } from '../data/books.js';
+---
 <div class="utility-bar">
   <div><span>🇰🇪 English</span><span>KES</span></div>
   <div><a href="/authors">Authors</a><a href="/launches">Events</a><a href="/podcast">Studio</a><a href="/shop">Shop</a><a href="/contact">Contact</a><a href="/publish">Submit a manuscript</a></div>
@@ -9,10 +12,13 @@
       <img src="/Images/brand/chance-logo.png" alt="Chance Publishers" />
     </a>
 
-    <form class="book-search" role="search">
+    <form class="book-search" role="search" action="/search" method="get">
       <label class="sr-only" for="book-search">Search books and authors</label>
-      <select aria-label="Search category"><option>All books</option><option>Religion</option><option>Leadership</option><option>Education</option><option>Fiction</option></select>
-      <input id="book-search" type="search" placeholder="Search books, titles or authors…" />
+      <select name="category" aria-label="Search category">
+        <option value="">All books</option>
+        {categories.map((c) => <option value={c.short}>{c.short}</option>)}
+      </select>
+      <input id="book-search" name="q" type="search" placeholder="Search books, titles or authors…" />
       <button type="submit" aria-label="Search">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
       </button>
@@ -55,7 +61,7 @@
 
   <button class="menu-backdrop" type="button" aria-label="Close menu" data-menu-backdrop hidden></button>
   <div class="mobile-menu" id="mobile-menu" data-mobile-menu hidden>
-    <form class="mobile-search" role="search"><label class="sr-only" for="mobile-book-search">Search books and authors</label><input id="mobile-book-search" type="search" placeholder="Search books and authors…" /><button type="submit" aria-label="Search"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg></button></form>
+    <form class="mobile-search" role="search" action="/search" method="get"><label class="sr-only" for="mobile-book-search">Search books and authors</label><input id="mobile-book-search" name="q" type="search" placeholder="Search books and authors…" /><button type="submit" aria-label="Search"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg></button></form>
     <a href="/">Home</a>
     <details><summary>Books <span>＋</span></summary><div><a href="/books">All books</a><a href="/books/new-releases">New releases</a><a href="/books/top-picks">Top picks</a><a href="/categories/religion">Categories</a></div></details>
     <a href="/authors">Authors</a><a href="/launches">Launches</a><a href="/podcast">Studio</a><a href="/publish">Publishing Guide</a><a href="/contact">Contact us</a><a class="mobile-shop" href="/shop">Shop books <span>↗</span></a><a class="mobile-publish" href="/publish">Publish with us <span>↗</span></a>

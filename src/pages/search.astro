@@ -1,0 +1,84 @@
+---
+export const prerender = false;
+import InnerPage from '../layouts/InnerPage.astro';
+import { books, categories } from '../data/books.js';
+
+const q = (Astro.url.searchParams.get('q') || '').trim();
+const category = Astro.url.searchParams.get('category') || '';
+
+const needle = q.toLowerCase();
+const results = books.filter((book) => {
+  const matchesQuery = !needle || book.title.toLowerCase().includes(needle) || book.author.toLowerCase().includes(needle);
+  const matchesCategory = !category || book.category === category;
+  return matchesQuery && matchesCategory;
+});
+
+const title = q ? `"${q}" — Search results` : category ? `${category} books` : 'Search our books';
+---
+<InnerPage title={title} description="Search Chance Publishers' full catalogue of published books by title, author or category.">
+  <section class="search-hero page-hero">
+    <small>SEARCH</small>
+    <h1>{title}</h1>
+    <form class="search-refine" action="/search" method="get">
+      <select name="category" aria-label="Category">
+        <option value="">All categories</option>
+        {categories.map((c) => <option value={c.short} selected={c.short === category}>{c.short}</option>)}
+      </select>
+      <input type="search" name="q" value={q} placeholder="Search books, titles or authors…" aria-label="Search books, titles or authors" />
+      <button type="submit">Search</button>
+    </form>
+  </section>
+
+  <section class="search-results">
+    <p class="result-count">{results.length} book{results.length === 1 ? '' : 's'} found</p>
+
+    {results.length === 0 ? (
+      <div class="empty-state">
+        <p>We couldn't find anything matching that search.</p>
+        <p class="muted">Try a different title, author name, or browse by category instead.</p>
+        <a class="btn-primary" href="/books">Browse all books →</a>
+      </div>
+    ) : (
+      <div class="results-grid">
+        {results.map((book) => (
+          <a class="result-card" href="/shop">
+            <div class="cover">
+              <img src={book.image} alt={`${book.title} cover`} loading="lazy" />
+              <span>{book.badge}</span>
+            </div>
+            <small>{book.category}</small>
+            <h3>{book.title}</h3>
+            <p>{book.author}</p>
+          </a>
+        ))}
+      </div>
+    )}
+  </section>
+</InnerPage>
+<style>
+  .search-hero small{color:var(--yellow);font-weight:900;letter-spacing:.14em}
+  .search-hero h1{margin:.6rem 0 1.8rem;font-family:var(--display);font-size:clamp(2.4rem,5vw,3.6rem);line-height:1.02;max-width:820px}
+  .search-refine{display:flex;gap:.6rem;flex-wrap:wrap;max-width:640px}
+  .search-refine select,.search-refine input{padding:.85rem 1rem;border:1px solid rgba(255,255,255,.3);border-radius:12px;background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:.85rem}
+  .search-refine input{flex:1;min-width:200px}
+  .search-refine select option{color:#173020}
+  .search-refine input::placeholder{color:rgba(255,255,255,.65)}
+  .search-refine button{padding:.85rem 1.3rem;border:0;border-radius:12px;background:var(--yellow);color:#173020;font-weight:900;cursor:pointer}
+  .search-results{padding:clamp(3rem,6vw,4.5rem) clamp(1rem,6vw,7rem)}
+  .result-count{margin:0 0 2rem;color:var(--muted);font-size:.85rem;font-weight:700}
+  .empty-state{max-width:480px;padding:2.5rem;text-align:center;background:var(--surface-2);border-radius:20px;display:grid;gap:.4rem;justify-items:center}
+  .empty-state .muted{color:var(--muted);margin:0 0 1rem}
+  .btn-primary{display:inline-block;padding:.85rem 1.3rem;border-radius:12px;background:var(--green);color:#fff;text-decoration:none;font-weight:900}
+  .results-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2.5rem 1.25rem}
+  .result-card{color:var(--text);text-decoration:none}
+  .cover{position:relative;aspect-ratio:.68;overflow:hidden;border-radius:13px;background:#e5eee8;box-shadow:0 13px 34px rgba(16,66,35,.15)}
+  .cover img{width:100%;height:100%;object-fit:cover;transition:.4s ease}
+  .result-card:hover .cover img{transform:scale(1.035)}
+  .cover span{position:absolute;left:.6rem;top:.6rem;padding:.38rem .5rem;border-radius:999px;background:var(--yellow);color:#173020;font-size:.52rem;font-weight:900}
+  .result-card small{display:block;margin-top:.8rem;color:var(--green);font-size:.58rem;font-weight:900}
+  .result-card h3{min-height:2.5em;margin:.3rem 0;font-family:var(--display);font-size:.95rem}
+  .result-card p{margin:0;color:var(--muted);font-size:.7rem}
+  @media(max-width:1100px){.results-grid{grid-template-columns:repeat(4,1fr)}}
+  @media(max-width:800px){.results-grid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:560px){.search-results{padding-inline:1rem}.results-grid{grid-template-columns:repeat(2,1fr);gap:2rem .8rem}}
+</style>
