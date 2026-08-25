@@ -1,0 +1,52 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../lib/db';
+
+const challengeId = Astro.cookies.get('cp_2fa_challenge')?.value;
+const challenge = challengeId
+  ? await prisma.twoFactorChallenge.findUnique({ where: { id: challengeId } })
+  : null;
+
+if (!challenge || challenge.expiresAt < new Date()) {
+  return Astro.redirect('/portal/login');
+}
+
+const error = Astro.url.searchParams.get('error');
+---
+<PortalLayout title="Verify it's you">
+  <div class="auth-page">
+    <div class="auth-decor" aria-hidden="true"></div>
+    <div class="auth-card">
+      <a class="auth-brand" href="/"><img src="/Images/brand/chance-logo.webp" alt="Chance Publishers" /></a>
+      <h1>Verify it's you</h1>
+      <p class="auth-sub">Enter the 6-digit code from your authenticator app, or one of your backup codes.</p>
+      {error === 'invalid-code' && <div class="auth-error">That code wasn't right. Please try again.</div>}
+      <form method="post" action="/api/portal/login/verify-2fa">
+        <label>Code<input type="text" name="code" inputmode="numeric" autocomplete="one-time-code" autofocus required placeholder="123456 or XXXXX-XXXXX" /></label>
+        <button type="submit" class="btn-primary">Verify</button>
+      </form>
+      <p class="auth-alt"><a href="/portal/login">← Back to sign in</a></p>
+    </div>
+  </div>
+</PortalLayout>
+<style>
+  .auth-page{position:relative;min-height:100vh;display:grid;place-items:center;padding:2rem;overflow:hidden;background:linear-gradient(180deg,var(--surface-2),var(--surface))}
+  .auth-decor{position:absolute;inset:0;z-index:0;pointer-events:none;background:
+    radial-gradient(circle at 12% 8%,rgba(255,210,28,.22),transparent 26%),
+    radial-gradient(circle at 88% 92%,rgba(18,174,88,.18),transparent 30%),
+    radial-gradient(circle at 90% 10%,rgba(18,174,88,.12),transparent 24%)}
+  .auth-card{position:relative;z-index:1;width:min(440px,100%);padding:3rem 2.75rem;background:var(--surface);border:1px solid var(--line);border-radius:24px;box-shadow:0 30px 80px rgba(10,40,25,.12);text-align:center}
+  .auth-brand{display:inline-block;margin-bottom:1.75rem}
+  .auth-brand img{height:88px;margin-inline:auto}
+  .auth-card h1{margin:0 0 .4rem;font-family:var(--display);font-size:1.7rem;letter-spacing:-.02em}
+  .auth-sub{margin:0 0 1.75rem;color:var(--muted);font-size:.88rem;line-height:1.6}
+  .auth-error{margin-bottom:1.2rem;padding:.8rem 1rem;border-radius:10px;background:#fdecec;color:#b91c1c;font-size:.85rem;font-weight:700;text-align:left}
+  form{display:grid;gap:1rem;text-align:left}
+  label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800;color:var(--text)}
+  input{padding:.85rem .95rem;border:1px solid var(--line);border-radius:10px;font-size:1.1rem;letter-spacing:.05em;text-align:center}
+  .btn-primary{margin-top:.4rem;padding:.95rem;border:0;border-radius:12px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 6px 0 var(--deep-green)}
+  .auth-alt{margin:1.75rem 0 0;text-align:center;font-size:.85rem;color:var(--muted)}
+  .auth-alt a{color:var(--green);font-weight:800;text-decoration:none}
+  @media(max-width:480px){.auth-card{padding:2.2rem 1.6rem}.auth-brand img{height:68px}}
+</style>

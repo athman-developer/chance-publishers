@@ -1,0 +1,54 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../../layouts/PortalLayout.astro';
+
+const user = Astro.locals.user!;
+
+const raw = Astro.cookies.get('cp_2fa_new_codes')?.value;
+Astro.cookies.delete('cp_2fa_new_codes', { path: '/' });
+
+let codes: string[] = [];
+if (raw) {
+  try {
+    codes = JSON.parse(raw);
+  } catch {
+    codes = [];
+  }
+}
+
+const SECTION_BY_ROLE: Record<string, 'admin' | 'employee' | 'author'> = {
+  SUPER_ADMIN: 'admin',
+  ADMIN: 'admin',
+  EMPLOYEE: 'employee',
+  PARTNER: 'employee',
+  AUTHOR: 'author',
+};
+const section = SECTION_BY_ROLE[user.roles?.[0]?.role?.key || ''] || 'author';
+---
+<PortalLayout title="Your backup codes" user={user} section={section}>
+  <h1>Two-factor authentication is on</h1>
+
+  {codes.length === 0 ? (
+    <div class="card">
+      <p>These codes can only be shown once, right after setup, and this page has already been visited or the link has expired.</p>
+      <a class="btn-primary" href="/portal/account/2fa">← Back to two-factor settings</a>
+    </div>
+  ) : (
+    <div class="card">
+      <p class="intro">Save these 10 backup codes somewhere safe — each one lets you sign in <b>once</b> if you ever lose access to your authenticator app. This is the only time they'll be shown.</p>
+      <div class="codes-grid">
+        {codes.map((code) => <code>{code}</code>)}
+      </div>
+      <a class="btn-primary" href="/portal/account/2fa">I've saved these — continue →</a>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  h1{margin:0 0 1.2rem;font-family:var(--display);font-size:1.5rem}
+  .card{max-width:520px;padding:1.6rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .intro{color:var(--muted);line-height:1.7;margin:0 0 1.3rem}
+  .codes-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1.5rem}
+  .codes-grid code{padding:.7rem;background:var(--surface-2);border-radius:8px;text-align:center;font-size:.9rem;font-weight:700;letter-spacing:.03em}
+  .btn-primary{display:inline-block;padding:.85rem 1.3rem;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:800;text-decoration:none;box-shadow:0 5px 0 var(--deep-green)}
+  @media(max-width:480px){.codes-grid{grid-template-columns:1fr}}
+</style>

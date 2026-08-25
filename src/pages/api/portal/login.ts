@@ -28,6 +28,23 @@ export const POST: APIRoute = async ({ request, cookies, redirect, clientAddress
   }
 
   await resetRateLimit(rateLimitKey);
+
+  const safeNext = next.startsWith('/portal') ? next : '/portal';
+
+  if (user.totpEnabled) {
+    const challenge = await prisma.twoFactorChallenge.create({
+      data: { userId: user.id, next: safeNext, expiresAt: new Date(Date.now() + 1000 * 60 * 10) },
+    });
+    cookies.set('cp_2fa_challenge', challenge.id, {
+      path: '/',
+      httpOnly: true,
+      secure: import.meta.env.PROD,
+      sameSite: 'lax',
+      maxAge: 60 * 10,
+    });
+    return redirect('/portal/login/verify-2fa');
+  }
+
   await createSession(user.id, cookies);
-  return redirect(next.startsWith('/portal') ? next : '/portal');
+  return redirect(safeNext);
 };

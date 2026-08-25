@@ -36,6 +36,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (pathname.startsWith('/api/portal')) return next();
 
   const publicPaths = ['/portal/login', '/portal/register', '/portal/verify-email', '/portal/share/', '/portal/forgot-password', '/portal/reset-password'];
+  // '/portal/login' startsWith already covers '/portal/login/verify-2fa'
   if (publicPaths.some((p) => pathname.startsWith(p))) return next();
 
   if (!auth) {

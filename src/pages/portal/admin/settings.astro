@@ -1,8 +1,10 @@
 ---
 export const prerender = false;
 import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../lib/db';
 
 const user = Astro.locals.user!;
+const dbUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { totpEnabled: true } });
 const pwError = Astro.url.searchParams.get('pwError');
 const pwSuccess = Astro.url.searchParams.get('pwSuccess');
 
@@ -23,6 +25,12 @@ const PW_ERRORS: Record<string, string> = {
     <label>Confirm new password<input type="password" name="confirmPassword" required minlength="8" /></label>
     <button type="submit" class="btn-primary">Update password</button>
   </form>
+
+  <h2 class="section-title">Two-factor authentication</h2>
+  <div class="card tfa-card">
+    <span class={`status-chip ${dbUser.totpEnabled ? 'on' : 'off'}`}>{dbUser.totpEnabled ? 'Enabled' : 'Not enabled'}</span>
+    <a class="btn-secondary" href="/portal/account/2fa">{dbUser.totpEnabled ? 'Manage' : 'Set up'} →</a>
+  </div>
 </PortalLayout>
 <style>
   h1{font-family:var(--display);font-size:1.6rem;margin:0 0 1.5rem}
@@ -35,4 +43,9 @@ const PW_ERRORS: Record<string, string> = {
   label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800}
   input{padding:.65rem .8rem;border:1px solid var(--line);border-radius:9px;font-size:.85rem;font-family:inherit}
   .btn-primary{padding:.85rem;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 5px 0 var(--deep-green);width:max-content;padding-inline:1.6rem}
+  .tfa-card{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+  .status-chip{padding:.4rem .8rem;border-radius:99px;font-size:.72rem;font-weight:800}
+  .status-chip.on{background:var(--soft-green);color:var(--deep-green)}
+  .status-chip.off{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+  .btn-secondary{padding:.6rem .9rem;border-radius:9px;background:var(--soft-green);color:var(--deep-green);text-decoration:none;font-weight:800;font-size:.82rem}
 </style>

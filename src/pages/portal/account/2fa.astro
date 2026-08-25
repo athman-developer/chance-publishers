@@ -1,0 +1,99 @@
+---
+export const prerender = false;
+import QRCode from 'qrcode';
+import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../lib/db';
+import { otpauthUri } from '../../../lib/auth/totp';
+
+const user = Astro.locals.user!;
+const dbUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+
+const SECTION_BY_ROLE: Record<string, 'admin' | 'employee' | 'author'> = {
+  SUPER_ADMIN: 'admin',
+  ADMIN: 'admin',
+  EMPLOYEE: 'employee',
+  PARTNER: 'employee',
+  AUTHOR: 'author',
+};
+const section = SECTION_BY_ROLE[user.roles?.[0]?.role?.key || ''] || 'author';
+const settingsHref = `/portal/${section}/settings`;
+
+const error = Astro.url.searchParams.get('error');
+const ERROR_MESSAGES: Record<string, string> = {
+  'invalid-code': "That code wasn't right. Please try again.",
+  'wrong-password': 'Your current password was incorrect.',
+};
+
+let qrDataUri = '';
+if (dbUser.totpSecret && !dbUser.totpEnabled) {
+  qrDataUri = await QRCode.toDataURL(otpauthUri(dbUser.email, dbUser.totpSecret));
+}
+---
+<PortalLayout title="Two-factor authentication" user={user} section={section}>
+  <a class="back-link" href={settingsHref}>← Settings</a>
+  <h1>Two-factor authentication</h1>
+  <p class="intro">Add a second step to signing in — even if someone learns your password, they can't get in without your phone too.</p>
+
+  {error && <div class="banner error">{ERROR_MESSAGES[error] || 'Something went wrong. Please try again.'}</div>}
+
+  {dbUser.totpEnabled ? (
+    <div class="card">
+      <div class="status-row"><span>Status</span><span class="status-chip on">Enabled</span></div>
+      <p class="muted">You have {dbUser.totpBackupCodes.length} unused backup code{dbUser.totpBackupCodes.length === 1 ? '' : 's'} remaining. Backup codes let you sign in if you lose access to your authenticator app.</p>
+      <form method="post" action="/api/portal/account/2fa/disable" class="disable-form">
+        <label>Confirm your current password to disable<input type="password" name="currentPassword" required autocomplete="current-password" /></label>
+        <button type="submit" class="btn-danger">Disable two-factor authentication</button>
+      </form>
+    </div>
+  ) : dbUser.totpSecret ? (
+    <div class="card">
+      <h2>Finish setting up</h2>
+      <ol class="steps">
+        <li>Install an authenticator app if you don't have one — Google Authenticator, Authy, or similar.</li>
+        <li>Scan this QR code with the app:</li>
+      </ol>
+      <img class="qr" src={qrDataUri} alt="Scan with your authenticator app" width="220" height="220" />
+      <p class="muted small">Can't scan it? Enter this key manually: <code>{dbUser.totpSecret}</code></p>
+      <form method="post" action="/api/portal/account/2fa/confirm" class="confirm-form">
+        <label>Enter the 6-digit code from the app<input type="text" name="code" inputmode="numeric" required placeholder="123456" /></label>
+        <button type="submit" class="btn-primary">Confirm &amp; enable</button>
+      </form>
+      <form method="post" action="/api/portal/account/2fa/cancel">
+        <button type="submit" class="btn-text">Cancel setup</button>
+      </form>
+    </div>
+  ) : (
+    <div class="card">
+      <div class="status-row"><span>Status</span><span class="status-chip off">Not enabled</span></div>
+      <form method="post" action="/api/portal/account/2fa/setup">
+        <button type="submit" class="btn-primary">Set up two-factor authentication</button>
+      </form>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  .back-link{display:inline-block;margin-bottom:1rem;color:var(--muted);text-decoration:none;font-weight:700;font-size:.82rem}
+  h1{margin:0 0 .5rem;font-family:var(--display);font-size:1.6rem}
+  .intro{max-width:520px;color:var(--muted);line-height:1.7;margin:0 0 1.5rem}
+  .banner{padding:1rem 1.2rem;border-radius:12px;font-size:.86rem;font-weight:700;margin-bottom:1.5rem}
+  .banner.error{background:#fdecec;color:#b91c1c}
+  .card{max-width:480px;padding:1.6rem;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  .card h2{margin:0 0 1rem;font-family:var(--display);font-size:1.05rem}
+  .status-row{display:flex;justify-content:space-between;align-items:center;padding:.8rem 1rem;background:var(--surface-2);border-radius:10px;font-weight:700;margin-bottom:1rem}
+  .status-chip{padding:.35rem .7rem;border-radius:99px;font-size:.68rem;font-weight:800}
+  .status-chip.on{background:var(--soft-green);color:var(--deep-green)}
+  .status-chip.off{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+  .muted{color:var(--muted);font-size:.85rem;line-height:1.6}
+  .muted.small{font-size:.78rem}
+  .steps{margin:0 0 1rem;padding-left:1.2rem;color:var(--muted);font-size:.85rem;display:grid;gap:.4rem}
+  .qr{display:block;margin:0 auto 1rem;border:1px solid var(--line);border-radius:12px;padding:.6rem;background:#fff}
+  code{padding:.2rem .4rem;background:var(--surface-2);border-radius:5px;font-size:.82rem;word-break:break-all}
+  form{display:grid;gap:.8rem;margin-top:1rem}
+  .confirm-form{margin-top:1.2rem}
+  label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800}
+  input{padding:.7rem .8rem;border:1px solid var(--line);border-radius:9px;font-size:.95rem}
+  .btn-primary{padding:.85rem;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 5px 0 var(--deep-green)}
+  .btn-danger{padding:.85rem;border:0;border-radius:10px;background:#fdecec;color:#b91c1c;font-weight:800;cursor:pointer}
+  .btn-text{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:.8rem;padding:0;text-align:left}
+  .disable-form{padding-top:1rem;border-top:1px solid var(--line)}
+</style>
