@@ -1,0 +1,24 @@
+---
+import InnerPage from '../layouts/InnerPage.astro';
+---
+<InnerPage title="Page Not Found" description="The page you're looking for doesn't exist on Chance Publishers." noindex={true}>
+  <section class="notfound-hero page-hero">
+    <small>404</small>
+    <h1>This page took a wrong turn.</h1>
+    <p>The page you're looking for doesn't exist, may have moved, or the link might have a typo. Here are some places that definitely do exist:</p>
+    <div class="notfound-links">
+      <a href="/">Home</a>
+      <a href="/books">Browse books</a>
+      <a href="/publish">Publishing guide</a>
+      <a href="/search">Search books</a>
+      <a href="/contact">Contact us</a>
+      <a href="/portal/login">Author portal</a>
+    </div>
+  </section>
+</InnerPage>
+<style>
+  .notfound-hero p{margin-top:1rem;max-width:560px}
+  .notfound-links{margin-top:2rem;display:flex;gap:.7rem;flex-wrap:wrap}
+  .notfound-links a{padding:.85rem 1.1rem;border:1px solid rgba(255,255,255,.3);border-radius:12px;color:#fff;text-decoration:none;font-weight:900}
+  .notfound-links a:first-child{background:var(--yellow);color:#173020;border-color:var(--yellow)}
+</style>

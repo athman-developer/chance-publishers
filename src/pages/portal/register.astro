@@ -6,6 +6,7 @@ const error = Astro.url.searchParams.get('error');
 const errorMessages: Record<string, string> = {
   'missing-fields': 'Please fill in your name, email and a password with at least 8 characters.',
   'email-taken': 'An account already exists with that email. Try signing in instead.',
+  'terms-not-accepted': 'Please agree to the Terms of Use and Privacy Policy to continue.',
 };
 ---
 <PortalLayout title="Create your author account">
@@ -21,6 +22,7 @@ const errorMessages: Record<string, string> = {
         <label>Email<input type="email" name="email" required autocomplete="email" /></label>
         <label>Phone<input type="tel" name="phone" autocomplete="tel" placeholder="+254 7xx xxx xxx" /></label>
         <label>Password<input type="password" name="password" required minlength="8" autocomplete="new-password" /></label>
+        <label class="terms-check"><input type="checkbox" name="acceptTerms" value="1" required /><span>I agree to the <a href="/legal/terms-of-use" target="_blank">Terms of Use</a> and <a href="/legal/privacy-policy" target="_blank">Privacy Policy</a>.</span></label>
         <button type="submit" class="btn-primary">Create account</button>
       </form>
       <p class="auth-alt">Already started? <a href="/portal/login">Sign in to your author portal</a></p>
@@ -41,6 +43,9 @@ const errorMessages: Record<string, string> = {
   .auth-error{margin-bottom:1.2rem;padding:.8rem 1rem;border-radius:10px;background:#fdecec;color:#b91c1c;font-size:.85rem;font-weight:700;text-align:left}
   form{display:grid;gap:1rem;text-align:left}
   label{display:grid;gap:.4rem;font-size:.8rem;font-weight:800;color:var(--text)}
+  .terms-check{display:flex;flex-direction:row;align-items:flex-start;gap:.6rem;font-weight:600;font-size:.78rem;color:var(--muted);line-height:1.5}
+  .terms-check input{width:auto;margin-top:.15rem;flex-shrink:0}
+  .terms-check a{color:var(--green);font-weight:800;text-decoration:underline}
   input{padding:.85rem .95rem;border:1px solid var(--line);border-radius:10px;font-size:.95rem}
   .btn-primary{margin-top:.4rem;padding:.95rem;border:0;border-radius:12px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 6px 0 var(--deep-green)}
   .btn-primary:hover{transform:translateY(-2px)}

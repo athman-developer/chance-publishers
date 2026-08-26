@@ -1,0 +1,65 @@
+---
+import InnerPage from '../layouts/InnerPage.astro';
+
+const values = [
+  { title: 'Your manuscript stays yours', desc: 'Every project starts with a signed NDA. We provide publishing services — we never claim ownership of your work.' },
+  { title: 'Real people, real accountability', desc: 'Every project has a named editor, designer and admin behind it — not an anonymous queue.' },
+  { title: 'Clear pricing, no surprises', desc: 'Packages, fees and payment terms are set out before you commit a shilling.' },
+  { title: 'Kenyan publishing, done properly', desc: 'From KNLS ISBN registration to legal deposit and printing, we handle the local requirements authors often find confusing.' },
+];
+---
+<InnerPage title="About Us" description="Chance Publishers is a Nairobi-based book publishing company supporting Kenyan authors from manuscript to finished book.">
+  <section class="about-hero page-hero">
+    <small>ABOUT CHANCE PUBLISHERS</small>
+    <h1>Your chance to grow.</h1>
+    <p>We're a Nairobi-based publishing company that helps authors turn a finished manuscript into a properly edited, designed and printed book — with the practical, often confusing parts of publishing in Kenya handled for you.</p>
+  </section>
+
+  <section class="about-body">
+    <div class="about-story">
+      <h2>What we do</h2>
+      <p>Chance Publishers supports authors through every stage of publishing: manuscript editing and proofreading, cover design and interior layout, ISBN registration through the Kenya National Library Service, printing, and book launch support. Whether you're publishing your first book or your fifteenth, our packages are built to take the production side off your hands so you can focus on the writing.</p>
+      <p>We work with authors across Kenya writing on faith, leadership, education, fiction, research and more — and with a small, dedicated team of editors, designers and printing partners who see your project through from start to finish.</p>
+    </div>
+
+    <div class="about-values">
+      <h2>How we work</h2>
+      <div class="values-grid">
+        {values.map((v) => (
+          <div class="value-card">
+            <h3>{v.title}</h3>
+            <p>{v.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div class="about-cta">
+      <div>
+        <h2>Ready to start?</h2>
+        <p>Compare our publishing packages, or reach out to talk through your manuscript first.</p>
+      </div>
+      <div class="about-cta-actions">
+        <a class="btn-primary" href="/publish">See the publishing guide →</a>
+        <a class="btn-secondary" href="/contact">Contact us</a>
+      </div>
+    </div>
+  </section>
+</InnerPage>
+<style>
+  .about-hero p{margin-top:1rem;max-width:640px}
+  .about-body{padding:clamp(3.5rem,7vw,6rem) clamp(1rem,6vw,7rem)}
+  .about-story{max-width:760px;margin-bottom:3.5rem}
+  .about-story h2,.about-values h2,.about-cta h2{font-family:var(--display);font-size:1.8rem;margin:0 0 1rem}
+  .about-story p{color:var(--muted);line-height:1.85;margin:0 0 1.2rem;font-size:1rem}
+  .values-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-top:1.5rem}
+  .value-card{padding:1.5rem;background:var(--surface-2);border-radius:16px}
+  .value-card h3{margin:0 0 .5rem;font-family:var(--display);font-size:1.05rem}
+  .value-card p{margin:0;color:var(--muted);font-size:.88rem;line-height:1.65}
+  .about-cta{margin-top:4rem;padding:2.2rem 2.4rem;display:flex;align-items:center;justify-content:space-between;gap:2rem;border-radius:24px;background:linear-gradient(120deg,#062b1c,#0a6f3e);color:#fff}
+  .about-cta p{margin:.4rem 0 0;color:rgba(255,255,255,.8);max-width:420px}
+  .about-cta-actions{display:flex;gap:.7rem;flex-wrap:wrap;flex-shrink:0}
+  .btn-primary{padding:.95rem 1.2rem;border-radius:12px;background:var(--yellow);color:#173020;text-decoration:none;font-weight:900;white-space:nowrap}
+  .btn-secondary{padding:.95rem 1.2rem;border:1px solid rgba(255,255,255,.35);border-radius:12px;color:#fff;text-decoration:none;font-weight:900;white-space:nowrap}
+  @media(max-width:800px){.values-grid{grid-template-columns:1fr}.about-cta{flex-direction:column;align-items:flex-start}}
+</style>

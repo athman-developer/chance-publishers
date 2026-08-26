@@ -252,6 +252,8 @@ model BookProject {
   genre            String?
   language         String?
   pageCountApprox  Int?
+  isbn             String?
+  isbnAssignedAt   DateTime?
   packageId        String?
   package          PublishingPackage? @relation(fields: [packageId], references: [id])
   currentStageKey  String             @default("AUTHOR_ONBOARDING")

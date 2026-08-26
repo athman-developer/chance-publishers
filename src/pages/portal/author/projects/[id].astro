@@ -87,6 +87,7 @@ const activity = await prisma.activityEvent.findMany({ where: { projectId: id },
       <div>
         <small>{project.projectNumber}</small>
         <h1>{project.title}</h1>
+        {project.isbn && <p class="isbn-line">ISBN {project.isbn}</p>}
       </div>
       <div style="display:flex;gap:.6rem;align-items:center">
         <a class="btn-link" href={`/portal/projects/${id}/messages`}>💬 Messages</a>
@@ -298,6 +299,7 @@ const activity = await prisma.activityEvent.findMany({ where: { projectId: id },
   .header-row{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.2rem}
   .header-row small{color:var(--green);font-weight:800;font-size:.7rem;letter-spacing:.08em}
   .header-row h1{margin:.2rem 0 0;font-family:var(--display);font-size:1.9rem}
+  .isbn-line{margin:.4rem 0 0;color:var(--green);font-weight:800;font-size:.8rem;letter-spacing:.02em}
   .status-chip{padding:.4rem .8rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.72rem;font-weight:800;white-space:nowrap}
   .progress-block{margin-bottom:2rem}
   .progress-track{height:10px;border-radius:99px;background:var(--soft-green);overflow:hidden;margin-bottom:.5rem}

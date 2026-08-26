@@ -13,9 +13,13 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const email = String(data.get('email') || '').trim().toLowerCase();
   const phone = String(data.get('phone') || '').trim();
   const password = String(data.get('password') || '');
+  const acceptTerms = data.get('acceptTerms') === '1';
 
   if (!fullName || !email || password.length < 8) {
     return redirect('/portal/register?error=missing-fields');
+  }
+  if (!acceptTerms) {
+    return redirect('/portal/register?error=terms-not-accepted');
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });
