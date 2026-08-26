@@ -7,6 +7,7 @@ import { prisma } from '../../../../../lib/db';
 import { hashPassword } from '../../../../../lib/auth/password';
 import { sendSms, normalizeKenyanPhone } from '../../../../../lib/sms';
 import { userHasRole } from '../../../../../lib/auth/session';
+import { logAdminAction } from '../../../../../lib/audit';
 
 function generatePassword(): string {
   return randomBytes(9).toString('base64url');
@@ -39,7 +40,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   const passwordHash = await hashPassword(password);
   const staffId = `CP-${randomBytes(3).toString('hex').toUpperCase()}`;
 
-  await prisma.user.create({
+  const newUser = await prisma.user.create({
     data: {
       email,
       phone: phone || null,
@@ -57,6 +58,8 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       },
     },
   });
+
+  await logAdminAction(admin.id, 'STAFF_ACCOUNT_CREATED', 'User', newUser.id, `${fullName} (${email}) · ${staffId}${jobTitle ? ` · ${jobTitle}` : ''}`);
 
   const loginUrl = `${new URL(request.url).origin}/portal/login`;
   const firstName = fullName.split(' ')[0];

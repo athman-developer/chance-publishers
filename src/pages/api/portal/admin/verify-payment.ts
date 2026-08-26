@@ -4,6 +4,7 @@ import type { APIRoute } from 'astro';
 import { prisma } from '../../../../lib/db';
 import { userHasRole } from '../../../../lib/auth/session';
 import { verifyPayment } from '../../../../lib/payments';
+import { logAdminAction } from '../../../../lib/audit';
 
 export const POST: APIRoute = async ({ request, locals, redirect }) => {
   const user = locals.user;
@@ -16,7 +17,8 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   const action = String(data.get('action') || 'verify');
 
   if (action === 'reject') {
-    await prisma.payment.update({ where: { id: paymentId }, data: { status: 'REJECTED' } });
+    const payment = await prisma.payment.update({ where: { id: paymentId }, data: { status: 'REJECTED' } });
+    await logAdminAction(user.id, 'PAYMENT_REJECTED', 'Payment', paymentId, `${payment.method.replaceAll('_', ' ')} · KSh ${Number(payment.amountKes).toLocaleString()}`);
   } else {
     await verifyPayment(paymentId, user.id);
   }

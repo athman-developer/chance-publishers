@@ -1,0 +1,80 @@
+---
+export const prerender = false;
+import PortalLayout from '../../../layouts/PortalLayout.astro';
+import { prisma } from '../../../lib/db';
+
+const user = Astro.locals.user!;
+
+const actionFilter = Astro.url.searchParams.get('action') || '';
+const entries = await prisma.adminAuditLog.findMany({
+  where: actionFilter ? { action: actionFilter } : undefined,
+  orderBy: { createdAt: 'desc' },
+  take: 200,
+});
+
+const ACTION_LABELS: Record<string, string> = {
+  PAYMENT_VERIFIED: 'Payment verified',
+  PAYMENT_REJECTED: 'Payment rejected',
+  CHEQUE_BOUNCED: 'Cheque bounced',
+  STAFF_ACCOUNT_CREATED: 'Staff account created',
+  QUOTATION_CREATED: 'Quotation created',
+};
+
+const ALL_ACTIONS = Object.keys(ACTION_LABELS);
+---
+<PortalLayout title="Audit Log" user={user} section="admin">
+  <div class="header-row">
+    <div>
+      <h1>Audit log</h1>
+      <p class="muted">Who verified which payment, created which account, or issued which quotation — for accountability on money and account changes. Most recent 200 entries.</p>
+    </div>
+  </div>
+
+  <form class="filter-row" method="get">
+    <label>Filter by action
+      <select name="action" onchange="this.form.submit()">
+        <option value="">All actions</option>
+        {ALL_ACTIONS.map((a) => <option value={a} selected={a === actionFilter}>{ACTION_LABELS[a]}</option>)}
+      </select>
+    </label>
+    {actionFilter && <a class="btn-text" href="/portal/admin/audit-log">Clear filter</a>}
+  </form>
+
+  {entries.length === 0 ? (
+    <p class="muted">No matching entries yet.</p>
+  ) : (
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Detail</th></tr></thead>
+        <tbody>
+          {entries.map((e) => (
+            <tr>
+              <td class="nowrap">{e.createdAt.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+              <td>{e.actorLabel}</td>
+              <td><span class="action-chip">{ACTION_LABELS[e.action] || e.action}</span></td>
+              <td class="detail">{e.detail || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</PortalLayout>
+<style>
+  .header-row{margin-bottom:1.5rem}
+  h1{margin:0 0 .4rem;font-family:var(--display);font-size:1.6rem}
+  .muted{color:var(--muted);font-size:.85rem;max-width:640px;line-height:1.6;margin:0}
+  .filter-row{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem}
+  .filter-row label{display:flex;align-items:center;gap:.5rem;font-size:.8rem;font-weight:800}
+  .filter-row select{padding:.5rem .7rem;border:1px solid var(--line);border-radius:9px;font-size:.82rem;font-family:inherit}
+  .btn-text{color:var(--green);font-weight:800;font-size:.8rem;text-decoration:none}
+  .table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  th,td{padding:.8rem 1rem;text-align:left;vertical-align:top}
+  thead{background:var(--surface-2)}
+  th{color:var(--muted);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+  tbody tr:not(:last-child){border-bottom:1px solid var(--line)}
+  .nowrap{white-space:nowrap;color:var(--muted)}
+  .action-chip{padding:.3rem .6rem;border-radius:99px;background:var(--soft-green);color:var(--deep-green);font-size:.68rem;font-weight:800;white-space:nowrap}
+  .detail{color:var(--muted)}
+</style>

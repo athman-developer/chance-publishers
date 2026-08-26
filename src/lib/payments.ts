@@ -7,6 +7,7 @@ import { notify, logActivity } from './notify';
 import { sendSms } from './sms';
 import { sendEmail } from './email';
 import { sendWhatsAppMessage } from './whatsapp';
+import { logAdminAction } from './audit';
 
 // Marks a payment VERIFIED, and if it fully covers its invoice, marks the
 // invoice PAID. If that invoice is an NDA fee, this is the one place the NDA
@@ -47,6 +48,13 @@ export async function verifyPayment(paymentId: string, verifiedByUserId: string)
   }
 
   await generateReceipt(payment.id);
+  await logAdminAction(
+    verifiedByUserId,
+    'PAYMENT_VERIFIED',
+    'Payment',
+    payment.id,
+    `${payment.method.replaceAll('_', ' ')} · KSh ${Number(payment.amountKes).toLocaleString()} · ${invoice.invoiceNumber} (${invoice.label || invoice.type}) · ${invoice.project.title}`,
+  );
   await notify(
     invoice.project.authorId,
     'PAYMENT_VERIFIED',
@@ -153,6 +161,7 @@ export async function advanceCheque(chequeId: string, action: 'deposit' | 'clear
       prisma.cheque.update({ where: { id: chequeId }, data: { status: 'BOUNCED' } }),
       prisma.payment.update({ where: { id: cheque.paymentId }, data: { status: 'REJECTED' } }),
     ]);
+    await logAdminAction(verifiedByUserId, 'CHEQUE_BOUNCED', 'Cheque', chequeId, `Cheque #${cheque.chequeNumber} from ${cheque.bank} bounced`);
   }
 }
 

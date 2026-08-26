@@ -5,6 +5,7 @@ import { prisma } from '../../../../../lib/db';
 import { nextDocumentNumber } from '../../../../../lib/documents';
 import { userHasRole } from '../../../../../lib/auth/session';
 import { parseLineItems } from '../../../../../lib/finance';
+import { logAdminAction } from '../../../../../lib/audit';
 
 export const POST: APIRoute = async ({ request, locals, redirect }) => {
   const user = locals.user;
@@ -28,7 +29,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   const quotationNumber = await nextDocumentNumber('QT');
   const validUntil = new Date(Date.now() + validDays * 24 * 60 * 60 * 1000);
 
-  await prisma.quotation.create({
+  const quotation = await prisma.quotation.create({
     data: {
       quotationNumber,
       projectId,
@@ -48,6 +49,9 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       },
     },
   });
+
+  const total = items.reduce((sum, item) => sum + item.quantity * item.unitPriceKes, 0);
+  await logAdminAction(user.id, 'QUOTATION_CREATED', 'Quotation', quotation.id, `${quotationNumber} · KSh ${total.toLocaleString()} · ${type}`);
 
   return redirect(`/portal/admin/projects/${projectId}`);
 };

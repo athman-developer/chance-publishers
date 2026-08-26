@@ -874,6 +874,26 @@ model ActivityEvent {
   @@index([projectId, createdAt])
 }
 
+// Distinct from ActivityEvent (which is per-project and author-visible):
+// this is an admin-only, append-only record of who did which sensitive
+// action, for accountability on money and account changes specifically —
+// "who verified this payment", "who created this account". actorUserId is
+// nullable because some entries are system-triggered (e.g. the M-Pesa
+// webhook auto-verifying a payment) rather than a person clicking a button.
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actorLabel  String
+  action      String
+  targetType  String
+  targetId    String?
+  detail      String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
+}
+
 // Authors never automatically get an employee's personal phone/email — only
 // what Admin explicitly grants here. See "My Publishing Team" rendering.
 enum ContactShareLevel {
