@@ -6,7 +6,7 @@ const heroBooks=preferred.map(title=>books.find(book=>book.title===title)).filte
 const initialFilter=category||mode;
 ---
 <section class="catalog-hero">
-  <div class="catalog-copy"><small>THE CHANCE PUBLISHERS LIBRARY</small><h1>{heading}</h1><p>{intro}</p><div class="hero-actions"><a href="#catalogue">Browse published books ↓</a><a class="shop-link" href="/shop">Visit the shop →</a></div></div>
+  <div class="catalog-copy"><small>THE CHANCE PUBLISHERS LIBRARY</small><h1>{heading}</h1><p>{intro}</p><div class="hero-actions"><a href="#catalogue">Browse published books ↓</a><a class="shop-link" href="https://shop.chancepublishers.com">Visit the shop →</a></div></div>
   <div class="landscape-showcase" aria-label="Featured Chance Publishers book mock-ups">
     {heroBooks.map((book,index)=><figure class={`landscape-card card-${index+1}`}><img src={book.mockup} alt={`${book.title} book mock-up`} /><figcaption><span>Published by Chance</span><b>{book.title}</b></figcaption></figure>)}
   </div>
@@ -16,8 +16,8 @@ const initialFilter=category||mode;
   <header><div><small>BOOKS WE HAVE PUBLISHED</small><h2>Ideas made tangible.</h2></div><p>Explore stories, research, learning and lived experience shaped into books with editorial care. Prices and purchasing are kept in our dedicated Shop.</p></header>
   <nav class="category-tabs" aria-label="Filter published books"><button class={!category&&mode==='all'?'active':''} type="button" data-filter="all">All books</button><button class={mode==='new'?'active':''} type="button" data-filter="new">New releases</button><button class={mode==='top'?'active':''} type="button" data-filter="top">Top picks</button>{categories.map(item=><button class={category===item.short?'active':''} type="button" data-filter={item.short}>{item.name}</button>)}</nav>
   <p class="filter-status" aria-live="polite"><b data-result-count>{books.length}</b> published books shown</p>
-  <div class="library-grid">{books.map(book=><article class="library-book" data-book-card data-category={book.category} data-new={book.badge==='New'?'true':'false'} data-top={book.badge==='Top Pick'?'true':'false'}><a href="/shop"><div class="cover"><img src={book.image} alt={`${book.title} cover`} loading="lazy"/><span>{book.badge}</span><i>Find in shop →</i></div><small>{book.category}</small><h3>{book.title}</h3><p>{book.author}</p></a></article>)}</div>
-  <div class="library-cta"><div><small>READY TO CHOOSE YOUR NEXT READ?</small><h2>Browse prices, formats and ordering details.</h2></div><a href="/shop">Open the Chance bookshop →</a></div>
+  <div class="library-grid">{books.map(book=><article class="library-book" data-book-card data-category={book.category} data-new={book.badge==='New'?'true':'false'} data-top={book.badge==='Top Pick'?'true':'false'}><a href="https://shop.chancepublishers.com"><div class="cover"><img src={book.image} alt={`${book.title} cover`} loading="lazy"/><span>{book.badge}</span><i>Find in shop →</i></div><small>{book.category}</small><h3>{book.title}</h3><p>{book.author}</p></a></article>)}</div>
+  <div class="library-cta"><div><small>READY TO CHOOSE YOUR NEXT READ?</small><h2>Browse prices, formats and ordering details.</h2></div><a href="https://shop.chancepublishers.com">Open the Chance bookshop →</a></div>
 </section>
 
 <style>

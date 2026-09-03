@@ -16,12 +16,15 @@ export default defineConfig({
         "default-src 'self'",
         "img-src 'self' data: https:",
         "font-src 'self' https://fonts.gstatic.com",
-        "connect-src 'self'",
+        "connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com",
         "frame-src https://www.google.com",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",
       ],
+      scriptDirective: {
+        resources: ["'self'", 'https://www.googletagmanager.com'],
+      },
       styleDirective: {
         resources: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       },

@@ -31,6 +31,29 @@ export const books = [
   {title:'Asolic Principle and Its Applications',category:'Science',author:'Abdilahi Kelvin Ngaira',image:'/Images/covers/asolic-principle.jpg',mockup:'/Images/mockups/asolic-principle.jpg',price:2400,badge:'New',year:2026},
 ];
 
+export const customProducts = [
+  {name:'Personalized Book Sleeves',description:'Name, initials, a favorite quote or your own artwork on a made-to-fit sleeve.'},
+  {name:'Custom Bookmarks',description:'Engraved names, dates, illustrations, Arabic calligraphy or a favorite quote.'},
+  {name:'Book Journals',description:'Personalized with the reader’s name and their reading goals.'},
+  {name:'Custom Reading Logs',description:'Designed around one person’s reading journey.'},
+  {name:'Personalized Bookplates',description:'"This book belongs to…" with their name and a design of their choice.'},
+  {name:'Book Annotation Kits',description:'Custom tabs, pens, sticky notes and annotation guides.'},
+  {name:'Custom Book Boxes',description:'Curated according to someone’s personality and interests.'},
+  {name:'Blind-Date Book Packages',description:'A mystery book with personalized clues and matching accessories.'},
+  {name:'Book Lover Tote Bags',description:'Personalized with names or literary designs.'},
+  {name:'Custom Book Pouches',description:'Small pouches for bookmarks, pens and tabs.'},
+  {name:'Literary Jewelry',description:'Book-themed necklaces, bracelets and pins.'},
+  {name:'Quote Cards',description:'Beautifully designed cards featuring literary, Islamic or African quotes.'},
+  {name:'Character Cards',description:'Collectible cards based on characters from books.'},
+  {name:'Personal Library Stamps',description:'Custom bookplates and stamps for your own library.'},
+  {name:'Reading Challenge Boards',description:'A personalized yearly reading challenge.'},
+  {name:'Book-themed Wall Art',description:'Favorite quotes, authors, book covers or reading milestones.'},
+  {name:'Personalized Book Gift Sets',description:'Designed for birthdays, graduations, weddings, Eid and other occasions.'},
+  {name:'Author Merchandise',description:'Customized products built around a particular author’s book.'},
+  {name:'Book Launch Merchandise',description:'Bookmarks, tote bags, cards and keepsakes for a launch event.'},
+  {name:'Book Memory Kits',description:'A place to record when, where and how someone read a particular book.'},
+];
+
 export const categories = [
   {slug:'religion',name:'Religion & Spirituality',short:'Religion',description:'Books for faith, devotion, spiritual reflection and purposeful living.'},
   {slug:'leadership',name:'Leadership & Growth',short:'Leadership',description:'Practical ideas for service, influence, character and transformational leadership.'},

@@ -41,7 +41,7 @@ const title = q ? `"${q}" — Search results` : category ? `${category} books` :
     ) : (
       <div class="results-grid">
         {results.map((book) => (
-          <a class="result-card" href="/shop">
+          <a class="result-card" href="https://shop.chancepublishers.com">
             <div class="cover">
               <img src={book.image} alt={`${book.title} cover`} loading="lazy" />
               <span>{book.badge}</span>

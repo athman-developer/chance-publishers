@@ -1,7 +1,10 @@
 ---
 import Navbar from "../components/Navbar.astro";
 import Footer from "../components/Footer.astro";
+import CookieBanner from "../components/CookieBanner.astro";
 import "../styles/responsive.css";
+const gaMeasurementId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID;
+const searchConsoleVerification = import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION;
 
 const products = [
   ["Not Expired","Leadership & Growth","/Images/covers/not-expired.jpg","Featured"],
@@ -63,6 +66,7 @@ const localBusinessSchema = {
     <meta property="og:url" content={siteUrl} />
     <meta property="og:image" content={`${siteUrl}/og.png`} />
     <meta name="twitter:card" content="summary_large_image" />
+    {searchConsoleVerification && <meta name="google-site-verification" content={searchConsoleVerification} />}
     <meta name="theme-color" content="#13ad58" />
     <title>Chance Publishers | Book Publishing & Printing Services in Kenya</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -112,7 +116,7 @@ const localBusinessSchema = {
       </section>
 
       <section class="top-picks section" id="books">
-        <div class="section-title reveal"><div><span class="kicker">READ • GROW • SHARE</span><h2>Some of the books <i>we have published.</i></h2></div><a href="/shop">Shop all books <span>→</span></a></div>
+        <div class="section-title reveal"><div><span class="kicker">READ • GROW • SHARE</span><h2>Some of the books <i>we have published.</i></h2></div><a href="https://shop.chancepublishers.com">Shop all books <span>→</span></a></div>
         <div class="picks-layout">
           <article class="feature-pick reveal">
             <img src="/Images/mockups/not-expired.jpg" alt="Not Expired book mock-up" loading="lazy" />
@@ -121,12 +125,12 @@ const localBusinessSchema = {
           <div class="product-grid">
             {products.map((product,index)=>(
               <article class="product-card reveal" style={`--delay:${index*45}ms`}>
-                <a class="product-cover" href="/shop" aria-label={`View ${product[0]} in the shop`}>
+                <a class="product-cover" href="https://shop.chancepublishers.com" aria-label={`View ${product[0]} in the shop`}>
                   <span class={`badge badge-${product[3].toLowerCase()}`}>{product[3]}</span>
                   <img src={product[2]} alt={`${product[0]} cover`} loading="lazy" style={product[4]?`object-position:${product[4]}`:undefined} />
                   <span class="quick-view">Quick view ↗</span>
                 </a>
-                <small>{product[1]}</small><h3>{product[0]}</h3><a href="/shop">Find in shop <span>→</span></a>
+                <small>{product[1]}</small><h3>{product[0]}</h3><a href="https://shop.chancepublishers.com">Find in shop <span>→</span></a>
               </article>
             ))}
           </div>
@@ -166,6 +170,7 @@ const localBusinessSchema = {
     </main>
 
     <Footer/>
+    <CookieBanner gaMeasurementId={gaMeasurementId} />
 
     <script>
       const root = document.documentElement;

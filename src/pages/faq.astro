@@ -1,0 +1,80 @@
+---
+import InnerPage from '../layouts/InnerPage.astro';
+const groups=[
+  {
+    name:'Publishing your book',
+    items:[
+      ['How much does it cost to publish a book in Kenya?','Publishing preparation and printing are quoted separately. Compare the <a href="/#packages">Bronze, Silver and Gold packages</a>, then request a printing quotation once the final size, pages, paper, colour and quantity are known.'],
+      ['How do I submit a manuscript?','Send the most complete editable draft with a title, author contact details, intended audience and short book description. <a href="mailto:chancepublishersltd@gmail.com?subject=Manuscript%20Submission">Email the manuscript</a> or <a href="/contact">speak with the team first</a>.'],
+      ['How do I get an ISBN in Kenya?','Kenya National Library Service (KNLS) is the national ISBN agency. Chance Publishers works with KNLS and manages the practical publishing steps for eligible projects. See the <a href="/publish#isbn">ISBN &amp; legal deposit guide</a>.'],
+      ['What happens before bulk printing?','The manuscript must be edited, designed, proofread and approved. A physical sample copy should be checked and signed off before quantity production begins. See the <a href="/publish#printing">printing checklist</a>.'],
+      ['Can Chance Publishers help with my launch?','Yes. Launch support can include planning, author presentation and promotional moments to introduce the finished book to readers. See <a href="/launches">Chance Publishers launch experiences</a>.'],
+      ['Can Chance Publishers get my book on Amazon?','Yes. Create your own free Amazon Kindle Direct Publishing account, then invite our team as an authorized user so we can manage your listing — your password never has to leave your hands, and your account and royalties stay fully yours.'],
+      ['Who owns the copyright to my manuscript?','You do, at every stage. Chance Publishers provides publishing services only — editing, design, layout, printing and launch support — and never takes ownership of your work. See the <a href="/legal/copyright-ownership">Copyright &amp; Manuscript Ownership</a> policy.'],
+    ],
+  },
+  {
+    name:'Buying books & custom gifts',
+    items:[
+      ['Where can I buy a Chance Publishers book?','Our bookshop is at <a href="https://shop.chancepublishers.com">shop.chancepublishers.com</a>, where you can browse titles, prices and place an order.'],
+      ['Do you sell personalized or custom book products?','Yes — bookmarks, journals, gift sets and other made-to-order items are on our <a href="/shop">Custom Gifts</a> page. Every piece is quoted individually over WhatsApp since it is made to order.'],
+    ],
+  },
+  {
+    name:'Payments & refunds',
+    items:[
+      ['How do I pay for a publishing package?','We accept bank transfer, M-Pesa (where enabled, via STK push from your author portal invoice) and cash or cheque in person at our office. Full detail is in the <a href="/legal/payment-policy">Payment Policy</a>.'],
+      ['How are publishing fees structured?','A fixed NDA processing fee is payable when your project starts. Your chosen package (Bronze, Silver or Gold) is then split into a 70% deposit, payable with your NDA fee, and a 30% balance due before your final, print-ready files are released. Printing is quoted and invoiced separately.'],
+      ['Can I get a refund?','It depends on the stage your project has reached — see the full <a href="/legal/refund-policy">Refund Policy</a> for what is refundable at each stage. As a starting point: fees are refundable in full before work begins, partially refundable once work has started but is not complete, and non-refundable once the covered work has been delivered to you.'],
+      ['My payment shows as "pending" in the portal — is that normal?','Yes. Every payment is verified by our finance team (or automatically, for M-Pesa) before it is marked as paid. "Pending" just means that check has not happened yet.'],
+    ],
+  },
+  {
+    name:'Your author portal',
+    items:[
+      ['I forgot my author portal password — what do I do?','Use the <a href="/portal/login">forgot password link on the sign-in page</a> to reset it by email.'],
+      ['Where do I find my invoices and receipts?','Every invoice and receipt for a verified payment is available in your author portal for as long as you need it.'],
+      ['I have not started a project yet — how do I get access?','Register for an author account and start your NDA at <a href="/portal/register">the manuscript submission page</a>.'],
+    ],
+  },
+];
+const faqSchema={
+  '@context':'https://schema.org',
+  '@type':'FAQPage',
+  mainEntity:groups.flatMap(group=>group.items.map(([q,a])=>({'@type':'Question',name:q,acceptedAnswer:{'@type':'Answer',text:a.replace(/<[^>]+>/g,'')}}))),
+};
+---
+<InnerPage title="Frequently Asked Questions" description="Answers to common questions about publishing a book, buying books, payments and refunds, and the Chance Publishers author portal.">
+  <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+  <section class="page-hero">
+    <small>NEED A QUICK ANSWER?</small>
+    <h1>Frequently asked<br/><i>questions.</i></h1>
+    <p>Publishing costs, buying books, payments and your author portal — the questions we hear most, answered directly. Can't find yours? <a href="/contact">Talk to the team</a>.</p>
+  </section>
+  <section class="faq-groups">
+    {groups.map(group=>(
+      <div class="faq-group">
+        <h2>{group.name}</h2>
+        <div class="faq-list">
+          {group.items.map(([q,a],i)=>(
+            <details open={i===0}>
+              <summary>{q}</summary>
+              <p set:html={a} />
+            </details>
+          ))}
+        </div>
+      </div>
+    ))}
+  </section>
+</InnerPage>
+<style>
+  .page-hero i{color:var(--yellow);font-family:"Patrick Hand",cursive;font-weight:400;font-style:normal}
+  .page-hero a{color:var(--yellow);font-weight:800}
+  .faq-groups{padding:clamp(3rem,6vw,5rem) clamp(1rem,6vw,7rem) clamp(5rem,8vw,7rem);display:grid;gap:3rem;max-width:900px;margin:0 auto}
+  .faq-group h2{margin:0 0 1.2rem;font-family:var(--display);font-size:1.5rem;color:var(--text)}
+  .faq-list{display:grid;gap:.7rem}
+  .faq-list details{padding:1.1rem 1.2rem;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
+  .faq-list summary{font-family:var(--display);font-weight:800;cursor:pointer;color:var(--text)}
+  .faq-list p{margin:.7rem 0 0;color:var(--muted);line-height:1.7}
+  .faq-list a{color:var(--green);font-weight:900}
+</style>
